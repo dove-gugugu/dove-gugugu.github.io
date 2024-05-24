@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>Go | 咕咕咕的博客</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<!-- <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous"> -->
+<link href="https://cdn.bootcss.com/font-awesome/5.13.0/css/all.css" rel="stylesheet">
+<link rel="shortcut icon" href="https://dove-gugugu.github.io//favicon.ico?v=1716523516598">
+<link rel="stylesheet" href="https://dove-gugugu.github.io//styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<!-- <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script> -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2.7.16"></script>
+
+
+
+    <meta name="description" content="温故而知新">
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://dove-gugugu.github.io/">
+        <img src="https://dove-gugugu.github.io//images/avatar.png?v=1716523516598" class="site-logo">
+        <h1 class="site-title">咕咕咕的博客</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      <!-- 新增搜索框 -->
+      <form id="gridea-search-form" style="position: relative" data-update="1716523516598" action="/search/">
+        <input class="search-input" autocomplete="off" spellcheck="false" name="q" placeholder="搜索文章" />
+        <!-- <i class="fas fa-search gt-c-content-color-first" style="position: absolute; top: 9px; left: 10px;"></i> -->
+      </form>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <!-- 新增天气模块 -->
+    <div class="weather-info">
+      <div class="weather-temperature"></div>
+      <div class="weather-details">
+        <div class="weather-city"></div>
+        <div class="weather-condition"></div>
+      </div>
+    </div>
+    <div class="site-description">
+      温故而知新
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://dove-gugugu.github.io//atom.xml" target="_blank">RSS</a>
+    </div>
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/dove-gugugu" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+          <a class="social-link" href="https://qm.qq.com/q/Ct9sVdkvo" target="_blank">
+            <i class="fab fa-qq"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <h2 class="current-tag">标签: Go</h2>
+          
+            <article class="post-item">
+              <div class="left">
+                <a href="https://dove-gugugu.github.io/post/go-duo-chong-an-zhuang/">
+                  <h2 class="post-title">Go多种安装</h2>
+                </a>
+                <div class="post-date">
+                  2024-05-09
+                </div>
+                <div class="post-abstract">
+                  <p>记录下在不同环境下搭建和配置Go语言的开发环境：1. 在Ubuntu上安装Go语言环境，并使用VSCode远程连接进行开发。2. 在本地直接安装Go，以及安装和管理多个Go版本。3. 使用Docker来创建Go开发环境，以保持系统环境的纯净和开发环境的一致性。</p>
+
+                </div>
+              </div>
+              
+                <a class="right" href="https://dove-gugugu.github.io/post/go-duo-chong-an-zhuang/">
+                  <div class="feature-container" style="background-image: url('https://dove-gugugu.github.io//post-images/go-duo-chong-an-zhuang.jpg')">
+                  </div>
+                </a>
+              
+            </article>
+          
+
+          <div class="pagination-container">
+  
+  
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+<script>
+  // 获取一言api数据并更新description div标签的文本内容和meta标签的content内容
+  fetch('https://v1.hitokoto.cn/?c=d&c=i&encode=text')
+    .then(response => response.text())
+    .then(data => {
+      // 更新description div标签的文本内容
+      document.getElementsByClassName('site-description')[0].innerText = data;
+      // 更新meta标签的content内容
+      document.querySelector('meta[name=description]').setAttribute('content', data);
+    })
+    .catch(error => {
+      console.error('访问一言api发生错误:', error);
+    });
+  function updateWeatherInfo(city, weather, temperature) {
+    // 使用获取到的数据更新DOM
+    document.querySelector('.weather-city').textContent = `${city}`;
+    document.querySelector('.weather-condition').textContent = `${weather}`;
+    document.querySelector('.weather-temperature').textContent = `${temperature}°C`;
+  }
+  // 使用fetch函数发送GET请求到API
+  fetch('https://05d001686f8e43249d001efa0d32a2a3.apig.cn-south-1.huaweicloudapis.com/weather')
+    .then(response => {
+      // 检查响应状态是否成功
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      // 将响应体转换为JSON格式
+      return response.json();
+    })
+    .then(data => {
+      // 提取所需的数据并打印
+      const { city, weather, temperature } = data;
+      updateWeatherInfo(city, weather, temperature);
+    })
+    .catch(error => {
+      // 打印错误信息
+      console.error('There has been a problem with your fetch operation:', error);
+    });
+</script>
+
+
+  </body>
+</html>

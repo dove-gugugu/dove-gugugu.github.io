@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>@Resource | 咕咕咕的博客</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<!-- <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous"> -->
+<link href="https://cdn.bootcss.com/font-awesome/5.13.0/css/all.css" rel="stylesheet">
+<link rel="shortcut icon" href="https://dove-gugugu.github.io//favicon.ico?v=1716523516598">
+<link rel="stylesheet" href="https://dove-gugugu.github.io//styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<!-- <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script> -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2.7.16"></script>
+
+
+
+    <meta name="description" content="
+@Resource 和 @Autowired 的区别
+
+@Resource 的作用相当于@Autowired，只不过@Autowired 按 byType 自动注入
+
+
+提供方不同
+
+@Autowired 是 Spring 提供的，@Re..." />
+    <meta name="keywords" content="Java" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://dove-gugugu.github.io/">
+        <img src="https://dove-gugugu.github.io//images/avatar.png?v=1716523516598" class="site-logo">
+        <h1 class="site-title">咕咕咕的博客</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      <!-- 新增搜索框 -->
+      <form id="gridea-search-form" style="position: relative" data-update="1716523516598" action="/search/">
+        <input class="search-input" autocomplete="off" spellcheck="false" name="q" placeholder="搜索文章" />
+        <!-- <i class="fas fa-search gt-c-content-color-first" style="position: absolute; top: 9px; left: 10px;"></i> -->
+      </form>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <!-- 新增天气模块 -->
+    <div class="weather-info">
+      <div class="weather-temperature"></div>
+      <div class="weather-details">
+        <div class="weather-city"></div>
+        <div class="weather-condition"></div>
+      </div>
+    </div>
+    <div class="site-description">
+      温故而知新
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://dove-gugugu.github.io//atom.xml" target="_blank">RSS</a>
+    </div>
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/dove-gugugu" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+          <a class="social-link" href="https://qm.qq.com/q/Ct9sVdkvo" target="_blank">
+            <i class="fab fa-qq"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">@Resource</h2>
+            <div class="post-date">
+              2022-12-23
+              <span style="margin-left: 10px;">字数：810</span>
+              <span style="margin-left: 10px;">阅读时间：4分钟左右</span>
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://dove-gugugu.github.io/tag/KDkFY6yxN/" class="tag">
+                    Java
+                  </a>
+                
+              </div>
+            
+            
+            <div class="toc-container">
+              <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#resource-%E5%92%8C-autowired-%E7%9A%84%E5%8C%BA%E5%88%AB">@Resource 和 @Autowired 的区别</a></li>
+<li><a href="#%E4%BB%80%E4%B9%88%E6%97%B6%E5%80%99%E7%94%A8resource">什么时候用@Resource</a></li>
+<li><a href="#%E6%B3%A8%E6%84%8F%E7%82%B9">注意点</a>
+<ul>
+<li><a href="#why">why</a></li>
+<li><a href="#%E6%80%BB%E7%BB%93">总结</a></li>
+</ul>
+</li>
+<li><a href="#autowired-%E8%A3%85%E9%85%8D%E9%A1%BA%E5%BA%8F">@Autowired 装配顺序</a></li>
+</ul>
+</li>
+</ul>
+
+            </div>
+            <div class="post-content" v-pre>
+              <!-- more -->
+<h2 id="resource-和-autowired-的区别">@Resource 和 @Autowired 的区别</h2>
+<blockquote>
+<p>@Resource 的作用相当于@Autowired，只不过@Autowired 按 byType 自动注入</p>
+</blockquote>
+<ol>
+<li>提供方不同
+<ul>
+<li>@Autowired 是 Spring 提供的，@Resource 是 J2EE 提供的</li>
+</ul>
+</li>
+<li>装配时默认类型不同
+<ul>
+<li>@Autowired 只按 type 装配,@Resource 默认是按 name 装配</li>
+</ul>
+</li>
+<li><strong>@Autowired 默认按类型装配</strong>，默认情况下必须要求依赖对象存在，如果要<strong>允许null值</strong>，可以设置它的<strong>required属性</strong>为<strong>false</strong>。如果想<strong>使用名称装配</strong>可以<strong>结合@Qualifier注解</strong>进行使用</li>
+<li><strong>@Resource 默认按照名称装配</strong>，名称可以通过 <strong>name 属性</strong>进行指定，如果没有指定 name 属性，当注解写在字段上时，<strong>默认取字段名</strong>进行名称查找。如果注解写在 setter 方法上<strong>默认取属性名</strong>进行装配。当找不到与名称匹配的bean时<strong>才按照类型</strong>进行装配。但是需要注意的是，如果name属性一旦指定，就<strong>只会按照名称</strong>进行装配</li>
+</ol>
+<h2 id="什么时候用resource">什么时候用@Resource</h2>
+<blockquote>
+<p>使用 @Resource 可以消除 IDE 的 'Field injection is not recommended' 警告，多多少少是有点⚠洁癖在的</p>
+</blockquote>
+<h2 id="注意点">注意点</h2>
+<p>当有同一个接口被两个及以上类实现的时候，如果单单使用 @Resource 会出现希望单个Bean的匹配，却找到了多个的情况。</p>
+<p>例如有一个水果接口 <code>Fruit</code>，同时有两个实现类：<code>Apple</code>、<code>Banana</code><br>
+此时新建一个商店类<code>Store</code>注入<code>Fruit</code>接口</p>
+<pre><code class="language-java">@Component
+public class Store {
+
+    // 使用 @Resource 注入
+    @Resource
+    private Fruit fruit;
+
+    public void getFruit() {
+        // 调用Furit接口中的售卖方法
+        fruit.sell();
+    }
+
+}
+</code></pre>
+<p><strong>调用<code>getFruit()</code>方法后会出现<code>NoUniqueBeanDefinitionException</code> 异常</strong></p>
+<h3 id="why">why</h3>
+<p>首先，当@Resource 中没有设置任何属性值时统统采用的是默认的值——默认按名称装配</p>
+<blockquote>
+<p>按照 Spring Bean 的加载顺序，Store Bean 创建的时候，BeanFactory中已经创建了 Apple 和 Banana Bean</p>
+</blockquote>
+<p>当 name 属性没有被设置时，就会执行下面的分支，根据是方法注入还是属性注入，分别设置为方法名称set后面的字符串或字段名称。</p>
+<ul>
+<li>当指定 type 时</li>
+</ul>
+<blockquote>
+<p>@Resource(type = Apple.class)</p>
+</blockquote>
+<p>设置 type 属性后，isDefaultName 的值还是为 true，所以执行的还是 resolveDependency 方法。但是由于添加了类型的限制，所以也就不会匹配到多个 Bean，而产生异常。</p>
+<ul>
+<li>既指定了name属性，又指定了type类型，但是是不同的类；</li>
+</ul>
+<blockquote>
+<p>@Resource(name = “banana”, type = Apple.class)</p>
+</blockquote>
+<p>name 属性被设置为 banana，isDefaultName 变为 false，执行 resolveBeanByName 方法。但是由于找不到对应 beanName 为 banana，但是类型又为 Apple.class 的 bean，还是会抛出异常</p>
+<h3 id="总结">总结</h3>
+<figure data-type="image" tabindex="1"><img src="https://dove-gugugu.github.io//post-images/1714653979277.png" alt="" loading="lazy"></figure>
+<ul>
+<li>当@Resource不设置任何值时，isDefaultName会为true，当对应字段名称的bean或者BeanDefinition已存在时会走byName的形式，否则走byType的形式；</li>
+<li>只指定了type属性时，只有当对应的名称不存在对应的bean或BeanDefinition，才会通过byType找到唯一的一个类型匹配的bean；</li>
+<li>只指定了name属性，会执行getBean方法，根据指定的name来获取bean；</li>
+<li>既指定了name属性，又指定了type属性，会先根据那么查找对应的bean，然后进行type类型比较。</li>
+</ul>
+<h2 id="autowired-装配顺序">@Autowired 装配顺序</h2>
+<figure data-type="image" tabindex="2"><img src="https://dove-gugugu.github.io//post-images/1714654513468.svg" alt="" loading="lazy"></figure>
+<blockquote>
+<p><a href="https://www.zhihu.com/question/39356740/answer/1907479772">@Autowired和@Resource的区别是什么？</a><br>
+<a href="https://www.boris1993.com/idea-warninig-field-injection-is-not-recommended.html">IDEA 警告 Field injection is not recommended</a></p>
+</blockquote>
+
+            </div>
+            <!-- 
+              <div class="tag-container">
+                
+                  <a href="https://dove-gugugu.github.io/tag/KDkFY6yxN/" class="tag">
+                    Java
+                  </a>
+                
+              </div>
+             -->
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://dove-gugugu.github.io/post/autowired/">
+                  <h3 class="post-title">
+                    @Autowired出现警告原因及解决方法
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+<script>
+  // 获取一言api数据并更新description div标签的文本内容和meta标签的content内容
+  fetch('https://v1.hitokoto.cn/?c=d&c=i&encode=text')
+    .then(response => response.text())
+    .then(data => {
+      // 更新description div标签的文本内容
+      document.getElementsByClassName('site-description')[0].innerText = data;
+      // 更新meta标签的content内容
+      document.querySelector('meta[name=description]').setAttribute('content', data);
+    })
+    .catch(error => {
+      console.error('访问一言api发生错误:', error);
+    });
+  function updateWeatherInfo(city, weather, temperature) {
+    // 使用获取到的数据更新DOM
+    document.querySelector('.weather-city').textContent = `${city}`;
+    document.querySelector('.weather-condition').textContent = `${weather}`;
+    document.querySelector('.weather-temperature').textContent = `${temperature}°C`;
+  }
+  // 使用fetch函数发送GET请求到API
+  fetch('https://05d001686f8e43249d001efa0d32a2a3.apig.cn-south-1.huaweicloudapis.com/weather')
+    .then(response => {
+      // 检查响应状态是否成功
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      // 将响应体转换为JSON格式
+      return response.json();
+    })
+    .then(data => {
+      // 提取所需的数据并打印
+      const { city, weather, temperature } = data;
+      updateWeatherInfo(city, weather, temperature);
+    })
+    .catch(error => {
+      // 打印错误信息
+      console.error('There has been a problem with your fetch operation:', error);
+    });
+</script>
+
+
+  <style>
+    .toc-container {
+      position: fixed;
+      top: 50px;
+      /* Adjust depending on your layout */
+      right: 20px;
+      /* Adjust depending on your layout */
+      width: 200px;
+      padding: 16px 8px;
+      background-color: #fff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .toc-container .markdownIt-TOC {
+      position: sticky;
+      top: 0;
+      font-size: 12px;
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .toc-container .markdownIt-TOC:before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 8px;
+      bottom: 0;
+      width: 1px;
+      background-color: #ebedef;
+      opacity: 0.5;
+    }
+
+    .toc-container ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .toc-container li {
+      padding-left: 16px;
+    }
+
+    .toc-container li a {
+      color: #444444;
+      padding: 8px;
+      display: block;
+      transition: all 0.3s;
+    }
+
+    .toc-container li a:hover {
+      background: #fafafa;
+    }
+
+    .toc-container li a.current {
+      background: #fafafa;
+    }
+
+    @media (max-width: 1150px) {
+      .toc-container {
+        display: none;
+      }
+    }
+  </style>
+  </body>
+</html>

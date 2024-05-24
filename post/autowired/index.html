@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>@Autowired出现警告原因及解决方法 | 咕咕咕的博客</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<!-- <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous"> -->
+<link href="https://cdn.bootcss.com/font-awesome/5.13.0/css/all.css" rel="stylesheet">
+<link rel="shortcut icon" href="https://dove-gugugu.github.io//favicon.ico?v=1716523516598">
+<link rel="stylesheet" href="https://dove-gugugu.github.io//styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<!-- <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script> -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2.7.16"></script>
+
+
+
+    <meta name="description" content="
+警告出现的原因
+使用 @Autowired 注解对字段进行依赖注入时会出现警告
+大概意思：
+
+不建议直接在字段上进行依赖注入。
+Spring 开发团队建议：在 Java Bean 中永远使用构造方法进行依赖注入。对于必须的依赖，永远使用断..." />
+    <meta name="keywords" content="Java" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://dove-gugugu.github.io/">
+        <img src="https://dove-gugugu.github.io//images/avatar.png?v=1716523516598" class="site-logo">
+        <h1 class="site-title">咕咕咕的博客</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      <!-- 新增搜索框 -->
+      <form id="gridea-search-form" style="position: relative" data-update="1716523516598" action="/search/">
+        <input class="search-input" autocomplete="off" spellcheck="false" name="q" placeholder="搜索文章" />
+        <!-- <i class="fas fa-search gt-c-content-color-first" style="position: absolute; top: 9px; left: 10px;"></i> -->
+      </form>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <!-- 新增天气模块 -->
+    <div class="weather-info">
+      <div class="weather-temperature"></div>
+      <div class="weather-details">
+        <div class="weather-city"></div>
+        <div class="weather-condition"></div>
+      </div>
+    </div>
+    <div class="site-description">
+      温故而知新
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://dove-gugugu.github.io//atom.xml" target="_blank">RSS</a>
+    </div>
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/dove-gugugu" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+          <a class="social-link" href="https://qm.qq.com/q/Ct9sVdkvo" target="_blank">
+            <i class="fab fa-qq"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">@Autowired出现警告原因及解决方法</h2>
+            <div class="post-date">
+              2022-12-23
+              <span style="margin-left: 10px;">字数：640</span>
+              <span style="margin-left: 10px;">阅读时间：3分钟左右</span>
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://dove-gugugu.github.io/tag/KDkFY6yxN/" class="tag">
+                    Java
+                  </a>
+                
+              </div>
+            
+            
+            <div class="toc-container">
+              <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E8%AD%A6%E5%91%8A%E5%87%BA%E7%8E%B0%E7%9A%84%E5%8E%9F%E5%9B%A0">警告出现的原因</a></li>
+<li><a href="#%E5%9F%BA%E4%BA%8E-field-%E7%9A%84%E6%B3%A8%E5%85%A5%E5%8F%AF%E8%83%BD%E4%BC%9A%E6%9C%89%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98">基于 field 的注入可能会有什么问题</a></li>
+<li><a href="#%E5%8F%AF%E9%80%89%E7%9A%84%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88">可选的解决方案</a></li>
+</ul>
+</li>
+</ul>
+
+            </div>
+            <div class="post-content" v-pre>
+              <!-- more -->
+<h2 id="警告出现的原因">警告出现的原因</h2>
+<p>使用 <code>@Autowired</code> 注解对字段进行依赖注入时会出现警告</p>
+<p>大概意思：</p>
+<blockquote>
+<p>不建议直接在字段上进行依赖注入。<br>
+Spring 开发团队建议：在 Java Bean 中永远使用构造方法进行依赖注入。对于必须的依赖，永远使用断言来确认。</p>
+</blockquote>
+<p>所谓基于 field 的注入，就是在变量上使用 <code>@Autowired</code> 注解进行依赖注入。这是我们最熟悉的一种方式，同时，也正是 Spring 团队所不推荐的方式。它用起来就像这样：</p>
+<pre><code class="language-java">@Autowired  
+private DependencyClass aDependency; 
+</code></pre>
+<h2 id="基于-field-的注入可能会有什么问题">基于 field 的注入可能会有什么问题</h2>
+<p>基于 field 的注入，虽然不是绝对禁止使用，但是它可能会带来一些隐含的问题。比如，在<a href="https://blog.csdn.net/ruangong1203/article/details/50992147">这篇博客</a>中，作者给出了这样的一个代码：</p>
+<pre><code class="language-java">@Autowired  
+private User user;  
+  
+private String school;  
+  
+public UserAccountServiceImpl() {  
+    this.school = user.getSchool();  
+}  
+</code></pre>
+<p>初看起来好像没有什么问题，<code>User</code> 类会被作为一个依赖被注入到当前类中，同时这个类的 <code>school</code> 属性将在初始化时通过 <code>user.getSchool()</code> 方法来获得值。但是，这个代码在运行时，却会抛出如下的异常：</p>
+<p><code>Exception in thread &quot;main&quot; org.springframework.beans.factory.BeanCreationException: Error creating bean with name '...' defined in file [....class]: Instantiation of bean failed; nested exception is org.springframework.beans.BeanInstantiationException: Failed to instantiate [...]: Constructor threw exception; nested exception is java.lang.NullPointerException </code></p>
+<p>即，在执行 <code>UserAccountServiceImpl()</code> 这个构造方法时出现了 NPE。</p>
+<p>出现这个问题的原因是，Java 在初始化一个类时，是按照 <code>静态变量或静态语句块 –&gt; 实例变量或初始化语句块 –&gt; 构造方法 -&gt; @Autowired</code> 的顺序 <a href="https://stackoverflow.com/questions/26230493/spring-bean-is-autowired-attribute-initialised-before-constructor/26231555#26231555">1</a>，那么显而易见，在执行这个类的构造方法时，<code>user</code> 对象尚未被注入，它的值还是 <code>null</code>，从而产生了 NPE。</p>
+<h2 id="可选的解决方案">可选的解决方案</h2>
+<ol>
+<li>基于构造方法的注入
+<ol>
+<li>可能会因为依赖过多而显得冗长，需要注意的是在 <code>Spring 4.3</code> 及以后的版本中，如果这个类只有一个构造方法，那么这个构造方法上面也可以不写 <code>@Autowired</code> 注解</li>
+</ol>
+</li>
+<li>基于 setter 方法的注入
+<ol>
+<li>建议用于注入非必须的依赖，同时在类中应该对这个依赖提供一个合理的默认值</li>
+<li>在 <code>Spring 4.3</code> 及以后的版本中，setter 上面的 <code>@Autowired</code> 注解是可以不写的</li>
+</ol>
+</li>
+<li>使用 <code>@Resource</code> 注解替换 <code>@Autowired</code>
+<ol>
+<li>因为构造方法和 setter 方法没有基于 field 方便，所以还是会找别的方法，比如@Resurce</li>
+<li>详见 <a href="https://dove-gugugu.github.io/post/resource/">@Resource</a></li>
+</ol>
+</li>
+</ol>
+
+            </div>
+            <!-- 
+              <div class="tag-container">
+                
+                  <a href="https://dove-gugugu.github.io/tag/KDkFY6yxN/" class="tag">
+                    Java
+                  </a>
+                
+              </div>
+             -->
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://dove-gugugu.github.io/post/feign-bi-ji/">
+                  <h3 class="post-title">
+                    Feign笔记
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+<script>
+  // 获取一言api数据并更新description div标签的文本内容和meta标签的content内容
+  fetch('https://v1.hitokoto.cn/?c=d&c=i&encode=text')
+    .then(response => response.text())
+    .then(data => {
+      // 更新description div标签的文本内容
+      document.getElementsByClassName('site-description')[0].innerText = data;
+      // 更新meta标签的content内容
+      document.querySelector('meta[name=description]').setAttribute('content', data);
+    })
+    .catch(error => {
+      console.error('访问一言api发生错误:', error);
+    });
+  function updateWeatherInfo(city, weather, temperature) {
+    // 使用获取到的数据更新DOM
+    document.querySelector('.weather-city').textContent = `${city}`;
+    document.querySelector('.weather-condition').textContent = `${weather}`;
+    document.querySelector('.weather-temperature').textContent = `${temperature}°C`;
+  }
+  // 使用fetch函数发送GET请求到API
+  fetch('https://05d001686f8e43249d001efa0d32a2a3.apig.cn-south-1.huaweicloudapis.com/weather')
+    .then(response => {
+      // 检查响应状态是否成功
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      // 将响应体转换为JSON格式
+      return response.json();
+    })
+    .then(data => {
+      // 提取所需的数据并打印
+      const { city, weather, temperature } = data;
+      updateWeatherInfo(city, weather, temperature);
+    })
+    .catch(error => {
+      // 打印错误信息
+      console.error('There has been a problem with your fetch operation:', error);
+    });
+</script>
+
+
+  <style>
+    .toc-container {
+      position: fixed;
+      top: 50px;
+      /* Adjust depending on your layout */
+      right: 20px;
+      /* Adjust depending on your layout */
+      width: 200px;
+      padding: 16px 8px;
+      background-color: #fff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .toc-container .markdownIt-TOC {
+      position: sticky;
+      top: 0;
+      font-size: 12px;
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .toc-container .markdownIt-TOC:before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 8px;
+      bottom: 0;
+      width: 1px;
+      background-color: #ebedef;
+      opacity: 0.5;
+    }
+
+    .toc-container ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .toc-container li {
+      padding-left: 16px;
+    }
+
+    .toc-container li a {
+      color: #444444;
+      padding: 8px;
+      display: block;
+      transition: all 0.3s;
+    }
+
+    .toc-container li a:hover {
+      background: #fafafa;
+    }
+
+    .toc-container li a.current {
+      background: #fafafa;
+    }
+
+    @media (max-width: 1150px) {
+      .toc-container {
+        display: none;
+      }
+    }
+  </style>
+  </body>
+</html>

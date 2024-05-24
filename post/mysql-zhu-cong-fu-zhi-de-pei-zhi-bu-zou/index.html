@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>MySQL主从复制的配置步骤 | 咕咕咕的博客</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<!-- <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous"> -->
+<link href="https://cdn.bootcss.com/font-awesome/5.13.0/css/all.css" rel="stylesheet">
+<link rel="shortcut icon" href="https://dove-gugugu.github.io//favicon.ico?v=1716523516598">
+<link rel="stylesheet" href="https://dove-gugugu.github.io//styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<!-- <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script> -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2.7.16"></script>
+
+
+
+    <meta name="description" content="一、准备工作
+
+确保主库和从库服务器之间网络连接正常。
+主库和从库的 MySQL 版本保持一致或者相近，建议主库版本高于或等于从库版本。
+在主库和从库上分别创建用于复制的用户，并设置该用户具有复制所需的权限。
+主库和从库上的文件系统最好相同..." />
+    <meta name="keywords" content="MySQL" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://dove-gugugu.github.io/">
+        <img src="https://dove-gugugu.github.io//images/avatar.png?v=1716523516598" class="site-logo">
+        <h1 class="site-title">咕咕咕的博客</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      <!-- 新增搜索框 -->
+      <form id="gridea-search-form" style="position: relative" data-update="1716523516598" action="/search/">
+        <input class="search-input" autocomplete="off" spellcheck="false" name="q" placeholder="搜索文章" />
+        <!-- <i class="fas fa-search gt-c-content-color-first" style="position: absolute; top: 9px; left: 10px;"></i> -->
+      </form>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <!-- 新增天气模块 -->
+    <div class="weather-info">
+      <div class="weather-temperature"></div>
+      <div class="weather-details">
+        <div class="weather-city"></div>
+        <div class="weather-condition"></div>
+      </div>
+    </div>
+    <div class="site-description">
+      温故而知新
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://dove-gugugu.github.io//atom.xml" target="_blank">RSS</a>
+    </div>
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/dove-gugugu" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+          <a class="social-link" href="https://qm.qq.com/q/Ct9sVdkvo" target="_blank">
+            <i class="fab fa-qq"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">MySQL主从复制的配置步骤</h2>
+            <div class="post-date">
+              2024-05-21
+              <span style="margin-left: 10px;">字数：862</span>
+              <span style="margin-left: 10px;">阅读时间：4分钟左右</span>
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://dove-gugugu.github.io/tag/FK5iYXUPD/" class="tag">
+                    MySQL
+                  </a>
+                
+              </div>
+            
+            
+              <div class="feature-container" style="background-image: url('https://kinsta.com/es/wp-content/uploads/sites/8/2019/05/que-es-mysql.png')">
+              </div>
+            
+            <div class="toc-container">
+              <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E4%B8%80-%E5%87%86%E5%A4%87%E5%B7%A5%E4%BD%9C">一、准备工作</a></li>
+<li><a href="#%E4%BA%8C-%E9%85%8D%E7%BD%AE%E4%B8%BB%E5%BA%93db1">二、配置主库db1</a></li>
+<li><a href="#%E4%B8%89-%E9%85%8D%E7%BD%AE%E4%BB%8E%E5%BA%93">三、配置从库</a></li>
+<li><a href="#%E5%9B%9B-%E5%A4%8D%E5%88%B6%E7%94%A8%E6%88%B7%E5%B9%B6%E6%8E%88%E6%9D%83">四、复制用户并授权</a></li>
+<li><a href="#%E4%BA%94-%E9%AA%8C%E8%AF%81%E5%A4%8D%E5%88%B6%E6%98%AF%E5%90%A6%E6%88%90%E5%8A%9F">五、验证复制是否成功</a></li>
+</ul>
+</li>
+</ul>
+
+            </div>
+            <div class="post-content" v-pre>
+              <h2 id="一-准备工作">一、准备工作</h2>
+<ul>
+<li>确保<strong>主库</strong>和<strong>从库</strong>服务器之间网络连接正常。</li>
+<li>主库和从库的 MySQL 版本保持一致或者相近，建议主库版本高于或等于从库版本。</li>
+<li>在主库和从库上分别创建用于复制的用户，并设置该用户具有复制所需的权限。</li>
+<li>主库和从库上的文件系统最好相同，例如都使用 InnoDB 存储引擎。</li>
+</ul>
+<h2 id="二-配置主库db1">二、配置主库db1</h2>
+<ol>
+<li>修改主库的 <code>/etc/my.cnf</code> 文件，在<code>[mysqld]</code>段添加以下配置：</li>
+</ol>
+<pre><code>[mysqld]
+# 开启 binary log
+log-bin = mysql-bin
+# 记录 slave 的信息
+server-id = 1
+# 指定中继日志文件的名称
+relay-log = mysql-relay-bin
+replicate-wild-ignore-table=mysql.%
+replicate-wild-ignore-table=test.%
+replicate-wild-ignore-table=information_schema.%
+</code></pre>
+<p>其中：</p>
+<ul>
+<li><code>replicate-wild-ignore-table</code>用于在复制过程中忽略特定的表。这里使用了通配符<code>%</code>。这意味着任何以<code>mysql.</code>、<code>test.</code>、<code>information_schema.</code>开头的表都不会被复制到从库</li>
+</ul>
+<ol>
+<li>重启主库服务 <code>sudo service mysql restart</code></li>
+</ol>
+<h2 id="三-配置从库">三、配置从库</h2>
+<ol>
+<li>在从库的 <code>my.cnf</code> 文件中添加如下配置：</li>
+</ol>
+<pre><code>[mysqld]
+# 设置 server-id
+server-id = 2
+# 指定二进制日志文件的名称
+log_bin = mysql-bin
+log_slave_updates = 1
+# 从库设置为只读
+read_only = 1
+# 指定中继日志文件的名称
+relay-log = mysql-relay-bin
+replicate-wild-ignore-table=mysql.%
+replicate-wild-ignore-table=test.%
+replicate-wild-ignore-table=information_schema.% 
+</code></pre>
+<p>其中:</p>
+<ul>
+<li><code>log_slave_updates = 1</code>表示从服务器在应用主服务器复制过来的更新时，也会将这些更新记录到自己的二进制日志中</li>
+</ul>
+<ol start="2">
+<li>重启从库服务 <code>sudo service mysql restart</code></li>
+</ol>
+<h2 id="四-复制用户并授权">四、复制用户并授权</h2>
+<ol>
+<li><strong>db1创建复制用户:</strong></li>
+</ol>
+<pre><code class="language-sql">GRANT REPLICATION SLAVE ON *.* TO 'repl_user'@'192.168.88.%' IDENTIFIED BY 'repl_passwd';
+</code></pre>
+<p>在主服务器<code>db1</code>上创建了一个名为<code>repl_user</code>的用户，并且授予了这个用户作为从服务器进行数据复制的权限。这个用户可以连接到任何以<code>192.168.88</code>开头的IP地址，并且密码是<code>repl_passwd</code>。<code>ON *.*</code>表示这个用户对所有数据库和表都有复制权限。</p>
+<ol start="2">
+<li><strong>查看主服务器状态:</strong></li>
+</ol>
+<pre><code class="language-sql">SHOW MASTER STATUS;
+</code></pre>
+<p>显示主服务器的二进制日志文件的状态信息。它会返回当前的二进制日志文件名和日志文件中的下一个可获取的位置（偏移量）</p>
+<ol start="3">
+<li><strong>db2设置db1为主服务器：</strong></li>
+</ol>
+<pre><code class="language-sql">CHANGE MASTER TO
+  master_host='192.168.88.11',
+  master_user='repl_user',
+  master_password='repl_passwd',
+  master_log_file='mysql-bin.000001',
+  master_log_pos=120;
+</code></pre>
+<ul>
+<li><code>master_host</code>: 主服务器的IP地址或主机名。</li>
+<li><code>master_user</code>: 在主服务器上创建的复制用户的用户名。</li>
+<li><code>master_password</code>: 复制用户的密码。</li>
+<li><code>master_log_file</code>: 主服务器的二进制日志文件名，这个文件名是从<code>SHOW MASTER STATUS;</code>命令中获取的。</li>
+<li><code>master_log_pos</code>: 二进制日志文件中的偏移量，从这个位置开始复制数据，这个偏移量也是从<code>SHOW MASTER STATUS;</code>命令中获取的。</li>
+</ul>
+<ol start="4">
+<li><strong>启动从服务器复制:</strong></li>
+</ol>
+<pre><code class="language-sql">START SLAVE;
+</code></pre>
+<p>启动从服务器的复制进程。一旦执行，从服务器将开始连接到主服务器，请求数据，并开始复制主服务器上的数据更改。</p>
+<h2 id="五-验证复制是否成功">五、验证复制是否成功</h2>
+<ol>
+<li>
+<p>检查主从复制状态：</p>
+<ul>
+<li>在主库上执行以下命令：<code>mysql -u root -p -e &quot;SHOW MASTER STATUS;&quot;</code></li>
+<li>记下显示的<code>File</code>和<code>Position</code>值。</li>
+</ul>
+</li>
+<li>
+<p>在从库上验证复制状态：</p>
+<ul>
+<li>在从库上执行以下命令：<code>mysql -u root -p -e &quot;SHOW SLAVE STATUS\G&quot;</code></li>
+<li>确认<code>Master_Log_File</code>和<code>Read_Master_Log_Pos</code>的值与步骤5中的主库状态一致，同时确保<code>Slave_IO_Running</code>和<code>Slave_SQL_Running</code>的值为<code>Yes</code>。</li>
+</ul>
+</li>
+</ol>
+
+            </div>
+            <!-- 
+              <div class="tag-container">
+                
+                  <a href="https://dove-gugugu.github.io/tag/FK5iYXUPD/" class="tag">
+                    MySQL
+                  </a>
+                
+              </div>
+             -->
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://dove-gugugu.github.io/post/go-duo-chong-an-zhuang/">
+                  <h3 class="post-title">
+                    Go多种安装
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+<script>
+  // 获取一言api数据并更新description div标签的文本内容和meta标签的content内容
+  fetch('https://v1.hitokoto.cn/?c=d&c=i&encode=text')
+    .then(response => response.text())
+    .then(data => {
+      // 更新description div标签的文本内容
+      document.getElementsByClassName('site-description')[0].innerText = data;
+      // 更新meta标签的content内容
+      document.querySelector('meta[name=description]').setAttribute('content', data);
+    })
+    .catch(error => {
+      console.error('访问一言api发生错误:', error);
+    });
+  function updateWeatherInfo(city, weather, temperature) {
+    // 使用获取到的数据更新DOM
+    document.querySelector('.weather-city').textContent = `${city}`;
+    document.querySelector('.weather-condition').textContent = `${weather}`;
+    document.querySelector('.weather-temperature').textContent = `${temperature}°C`;
+  }
+  // 使用fetch函数发送GET请求到API
+  fetch('https://05d001686f8e43249d001efa0d32a2a3.apig.cn-south-1.huaweicloudapis.com/weather')
+    .then(response => {
+      // 检查响应状态是否成功
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      // 将响应体转换为JSON格式
+      return response.json();
+    })
+    .then(data => {
+      // 提取所需的数据并打印
+      const { city, weather, temperature } = data;
+      updateWeatherInfo(city, weather, temperature);
+    })
+    .catch(error => {
+      // 打印错误信息
+      console.error('There has been a problem with your fetch operation:', error);
+    });
+</script>
+
+
+  <style>
+    .toc-container {
+      position: fixed;
+      top: 50px;
+      /* Adjust depending on your layout */
+      right: 20px;
+      /* Adjust depending on your layout */
+      width: 200px;
+      padding: 16px 8px;
+      background-color: #fff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .toc-container .markdownIt-TOC {
+      position: sticky;
+      top: 0;
+      font-size: 12px;
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .toc-container .markdownIt-TOC:before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 8px;
+      bottom: 0;
+      width: 1px;
+      background-color: #ebedef;
+      opacity: 0.5;
+    }
+
+    .toc-container ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .toc-container li {
+      padding-left: 16px;
+    }
+
+    .toc-container li a {
+      color: #444444;
+      padding: 8px;
+      display: block;
+      transition: all 0.3s;
+    }
+
+    .toc-container li a:hover {
+      background: #fafafa;
+    }
+
+    .toc-container li a.current {
+      background: #fafafa;
+    }
+
+    @media (max-width: 1150px) {
+      .toc-container {
+        display: none;
+      }
+    }
+  </style>
+  </body>
+</html>

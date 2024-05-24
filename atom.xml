@@ -1,0 +1,1089 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://dove-gugugu.github.io/</id>
+    <title>咕咕咕的博客</title>
+    <updated>2024-05-24T04:07:56.859Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://dove-gugugu.github.io/"/>
+    <link rel="self" href="https://dove-gugugu.github.io/atom.xml"/>
+    <subtitle>温故而知新</subtitle>
+    <logo>https://dove-gugugu.github.io/images/avatar.png</logo>
+    <icon>https://dove-gugugu.github.io/favicon.ico</icon>
+    <rights>All rights reserved 2024, 咕咕咕的博客</rights>
+    <entry>
+        <title type="html"><![CDATA[Docker镜像架构不一致怎么办]]></title>
+        <id>https://dove-gugugu.github.io/post/docker-jing-xiang-jia-gou-bu-yi-zhi-zen-me-ban/</id>
+        <link href="https://dove-gugugu.github.io/post/docker-jing-xiang-jia-gou-bu-yi-zhi-zen-me-ban/">
+        </link>
+        <updated>2024-05-21T09:31:46.000Z</updated>
+        <summary type="html"><![CDATA[<p>当镜像的架构与服务器架构不一致时，可以采用将正常运行的容器打包成新镜像的方法</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>当镜像的架构与服务器架构不一致时，可以采用将正常运行的容器打包成新镜像的方法</p>
+<!-- more -->
+<h2 id="docker-buildx-构建多架构镜像">Docker buildx 构建多架构镜像</h2>
+<p>详见<a href="https://blog.csdn.net/Canger_/article/details/122239139">这里</a></p>
+<p>docker buildx build --platform linux/arm64 -t discuz/test-for-buildx . --load</p>
+<h2 id="开启-binfmt_misc-来运行非本地架构-docker-镜像">开启 binfmt_misc 来运行非本地架构 Docker 镜像</h2>
+<p>详见<a href="https://blog.csdn.net/WZP_LOVE/article/details/121443240">这里</a></p>
+<p>启用 <code>binfmt_misc</code> ：运行一个特权容器，容器里面写好了设置脚本</p>
+<p>使用Docker镜像安装模拟器： <a href="https://hub.docker.com/r/tonistiigi/binfmt">tonistiigi/binfmt</a></p>
+<pre><code class="language-bash">docker run --privileged --rm tonistiigi/binfmt --install all
+</code></pre>
+<ul>
+<li><strong>Linux kernel &gt;= 4.8</strong>: 自该Linux内核版本 binfmt_misc 支持 fix-binary (F) flag。fix_binary 标志允许内核在容器或chroot内使用binfmt_misc注册的二进制格式处理程序，即使该处理程序二进制文件不是该容器或chroot内可见的文件系统的一部分。</li>
+<li><strong>binfmt_misc file system mounted</strong>: 需要挂载binfmt_misc文件系统，以便用户空间工具可以控制此内核功能，即注册和启用处理程序。</li>
+</ul>
+<h4 id="配置-binfmt_misc">配置 binfmt_misc</h4>
+<p>QEMU 是一个很棒的开源项目，它可以模拟很多平台。将 QEMU 和 Docker 结合起来使用能使得我们更容易的构建跨平台的容器镜像。集成 QEMU依赖于 Linux 内核功能 。Linux 内核中的 <code>binfmt_misc</code>功能可以使得内核识别任意类型的可以执行文件格式，并传递到特定的用户空间应用程序和虚拟机（<a href="https://zh.wikipedia.org/wiki/Binfmt_misc%EF%BC%89%E3%80%82%E5%BD%93">https://zh.wikipedia.org/wiki/Binfmt_misc）。当</a> Linux 遇到一种无法识别的可执行文件格式（比如说其它平台的可执行文件格式）时，它会检查有没有配置任何“用户空间应用程序”用于处理它。如果检测到了，就将可执行文件传递给该应用程序。</p>
+<p>为此，我们需要在内核当中注册其它平台的可执行文件格式。</p>
+<p>对于使用 Docker Desktop（MacOS 和 Windows 上都是）的同学，因为默认配置了 <code>binfmt_misc</code>，可以跳过这一步。而使用 Linux 发行版操作系统的同学则需要自行安装配置 <code>binfmt_misc</code>，以便能够非原生的其它平台的镜像。</p>
+<p>要在宿主机上执行其它 CPU 平台的指令，需要安装 QEMU 模拟器。因为程序执行时会在当前程序可见的文件系统中查找动态库，而在容器或chroot环境中注册的处理程序在其它的 cgroup namespace 中可能无法找到，所以需要静态编译连接的QEMU。同时，我们需要安装一个包含足够新的update-binfmts二进制文件的包，以便能够支持fix-binary（F）标志，并在注册QEMU模拟器时实际使用，这样才能结合 buildx 一起镜像跨平台构建。</p>
+<p>QEMU 和 binfmt_misc 支持工具可以通过<strong>宿主机</strong>或者<strong>Docker 容器镜像</strong>安装。但是，使用Docker镜像安装配置能让事情变得更加简单。镜像 <code>docker/binfmt</code> 中包含QEMU二进制文件和在binfmt_misc中注册QEMU的安装脚本。</p>
+<pre><code class="language-dockerfile">docker run --privileged docker/binfmt:66f9012c56a8316f9244ffd7622d7c21c1f6f28d
+</code></pre>
+<p>执行完后，我们验证下是否注册成功了。成功注册后，<code>/proc/sys/fs/binfmt_misc</code> 目录中会有多个<code>qemu-</code>前缀的文件。查看 <code>/proc/sys/fs/binfmt_misc/qemu-aarch64</code> 文件内容，可以看到 falgs 标志为 <code>OCF</code>，说明这个处理程序是通过 （F）标志注册的，能够正常的结合 buildx 完成跨平台构建。</p>
+<p><a href="https://www.cnblogs.com/tencent-cloud-native/p/14190655.html">多平台容器镜像构建就看这一篇</a><br>
+<a href="www.cnblogs.com/frankming/p/16870285.html">容器镜像多架构支持介绍</a></p>
+<p><a href="https://docs.docker.com/build/building/multi-platform/#support-on-docker-desktop">docker官网中多平台镜像的内容</a></p>
+<p>👇<br>
+Docker Desktop提供了binfmt_misc多架构支持，这意味着您可以为不同的Linux架构(如arm、mips、ppc64le，甚至s390x)运行容器。</p>
+<p>这并不需要容器本身的任何特殊配置，因为它使用了来自Docker for Mac VM的qemu-static。因此，您可以运行ARM容器，例如busybox映像的arm32v7或ppc64le变体。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[MySQL主从复制的配置步骤]]></title>
+        <id>https://dove-gugugu.github.io/post/mysql-zhu-cong-fu-zhi-de-pei-zhi-bu-zou/</id>
+        <link href="https://dove-gugugu.github.io/post/mysql-zhu-cong-fu-zhi-de-pei-zhi-bu-zou/">
+        </link>
+        <updated>2024-05-21T07:53:01.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="一-准备工作">一、准备工作</h2>
+<ul>
+<li>确保<strong>主库</strong>和<strong>从库</strong>服务器之间网络连接正常。</li>
+<li>主库和从库的 MySQL 版本保持一致或者相近，建议主库版本高于或等于从库版本。</li>
+<li>在主库和从库上分别创建用于复制的用户，并设置该用户具有复制所需的权限。</li>
+<li>主库和从库上的文件系统最好相同，例如都使用 InnoDB 存储引擎。</li>
+</ul>
+<h2 id="二-配置主库db1">二、配置主库db1</h2>
+<ol>
+<li>修改主库的 <code>/etc/my.cnf</code> 文件，在<code>[mysqld]</code>段添加以下配置：</li>
+</ol>
+<pre><code>[mysqld]
+# 开启 binary log
+log-bin = mysql-bin
+# 记录 slave 的信息
+server-id = 1
+# 指定中继日志文件的名称
+relay-log = mysql-relay-bin
+replicate-wild-ignore-table=mysql.%
+replicate-wild-ignore-table=test.%
+replicate-wild-ignore-table=information_schema.%
+</code></pre>
+<p>其中：</p>
+<ul>
+<li><code>replicate-wild-ignore-table</code>用于在复制过程中忽略特定的表。这里使用了通配符<code>%</code>。这意味着任何以<code>mysql.</code>、<code>test.</code>、<code>information_schema.</code>开头的表都不会被复制到从库</li>
+</ul>
+<ol>
+<li>重启主库服务 <code>sudo service mysql restart</code></li>
+</ol>
+<h2 id="三-配置从库">三、配置从库</h2>
+<ol>
+<li>在从库的 <code>my.cnf</code> 文件中添加如下配置：</li>
+</ol>
+<pre><code>[mysqld]
+# 设置 server-id
+server-id = 2
+# 指定二进制日志文件的名称
+log_bin = mysql-bin
+log_slave_updates = 1
+# 从库设置为只读
+read_only = 1
+# 指定中继日志文件的名称
+relay-log = mysql-relay-bin
+replicate-wild-ignore-table=mysql.%
+replicate-wild-ignore-table=test.%
+replicate-wild-ignore-table=information_schema.% 
+</code></pre>
+<p>其中:</p>
+<ul>
+<li><code>log_slave_updates = 1</code>表示从服务器在应用主服务器复制过来的更新时，也会将这些更新记录到自己的二进制日志中</li>
+</ul>
+<ol start="2">
+<li>重启从库服务 <code>sudo service mysql restart</code></li>
+</ol>
+<h2 id="四-复制用户并授权">四、复制用户并授权</h2>
+<ol>
+<li><strong>db1创建复制用户:</strong></li>
+</ol>
+<pre><code class="language-sql">GRANT REPLICATION SLAVE ON *.* TO 'repl_user'@'192.168.88.%' IDENTIFIED BY 'repl_passwd';
+</code></pre>
+<p>在主服务器<code>db1</code>上创建了一个名为<code>repl_user</code>的用户，并且授予了这个用户作为从服务器进行数据复制的权限。这个用户可以连接到任何以<code>192.168.88</code>开头的IP地址，并且密码是<code>repl_passwd</code>。<code>ON *.*</code>表示这个用户对所有数据库和表都有复制权限。</p>
+<ol start="2">
+<li><strong>查看主服务器状态:</strong></li>
+</ol>
+<pre><code class="language-sql">SHOW MASTER STATUS;
+</code></pre>
+<p>显示主服务器的二进制日志文件的状态信息。它会返回当前的二进制日志文件名和日志文件中的下一个可获取的位置（偏移量）</p>
+<ol start="3">
+<li><strong>db2设置db1为主服务器：</strong></li>
+</ol>
+<pre><code class="language-sql">CHANGE MASTER TO
+  master_host='192.168.88.11',
+  master_user='repl_user',
+  master_password='repl_passwd',
+  master_log_file='mysql-bin.000001',
+  master_log_pos=120;
+</code></pre>
+<ul>
+<li><code>master_host</code>: 主服务器的IP地址或主机名。</li>
+<li><code>master_user</code>: 在主服务器上创建的复制用户的用户名。</li>
+<li><code>master_password</code>: 复制用户的密码。</li>
+<li><code>master_log_file</code>: 主服务器的二进制日志文件名，这个文件名是从<code>SHOW MASTER STATUS;</code>命令中获取的。</li>
+<li><code>master_log_pos</code>: 二进制日志文件中的偏移量，从这个位置开始复制数据，这个偏移量也是从<code>SHOW MASTER STATUS;</code>命令中获取的。</li>
+</ul>
+<ol start="4">
+<li><strong>启动从服务器复制:</strong></li>
+</ol>
+<pre><code class="language-sql">START SLAVE;
+</code></pre>
+<p>启动从服务器的复制进程。一旦执行，从服务器将开始连接到主服务器，请求数据，并开始复制主服务器上的数据更改。</p>
+<h2 id="五-验证复制是否成功">五、验证复制是否成功</h2>
+<ol>
+<li>
+<p>检查主从复制状态：</p>
+<ul>
+<li>在主库上执行以下命令：<code>mysql -u root -p -e &quot;SHOW MASTER STATUS;&quot;</code></li>
+<li>记下显示的<code>File</code>和<code>Position</code>值。</li>
+</ul>
+</li>
+<li>
+<p>在从库上验证复制状态：</p>
+<ul>
+<li>在从库上执行以下命令：<code>mysql -u root -p -e &quot;SHOW SLAVE STATUS\G&quot;</code></li>
+<li>确认<code>Master_Log_File</code>和<code>Read_Master_Log_Pos</code>的值与步骤5中的主库状态一致，同时确保<code>Slave_IO_Running</code>和<code>Slave_SQL_Running</code>的值为<code>Yes</code>。</li>
+</ul>
+</li>
+</ol>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Go多种安装]]></title>
+        <id>https://dove-gugugu.github.io/post/go-duo-chong-an-zhuang/</id>
+        <link href="https://dove-gugugu.github.io/post/go-duo-chong-an-zhuang/">
+        </link>
+        <updated>2024-05-09T06:25:25.000Z</updated>
+        <summary type="html"><![CDATA[<p>记录下在不同环境下搭建和配置Go语言的开发环境：1. 在Ubuntu上安装Go语言环境，并使用VSCode远程连接进行开发。2. 在本地直接安装Go，以及安装和管理多个Go版本。3. 使用Docker来创建Go开发环境，以保持系统环境的纯净和开发环境的一致性。</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>记录下在不同环境下搭建和配置Go语言的开发环境：1. 在Ubuntu上安装Go语言环境，并使用VSCode远程连接进行开发。2. 在本地直接安装Go，以及安装和管理多个Go版本。3. 使用Docker来创建Go开发环境，以保持系统环境的纯净和开发环境的一致性。</p>
+<!-- more -->
+<h1 id="ubuntu安装go环境后使用vscode远程连接开发">Ubuntu安装Go环境后使用VSCode远程连接开发</h1>
+<ol>
+<li>服务器安装Go
+<ol>
+<li><a href="https://golang.google.cn/dl/">官网</a>下载安装包，解压到 /usr/local，检查该路径下是否出现go</li>
+<li>在 /etc/profile 新增配置 <code>export PATH=$PATH:/usr/local/src/go/bin</code></li>
+<li>或在 /home/{user}/.profile 中配置</li>
+<li>使profile配置立即生效 <code>source /home/{user}/.profile</code></li>
+<li>如果在 /etc/profile 修改的需要重启</li>
+<li>大概率需要配置镜像代理，不然下载依赖太慢 <code>go env -w GOPROXY=https://goproxy.cn,direct</code></li>
+</ol>
+</li>
+<li>VSCode远程连接服务器
+<ol>
+<li>安装 Remote-SSH 插件，用以远程连接服务器</li>
+</ol>
+</li>
+<li>使用 Remote-SSH 连接远程服务器后
+<ol>
+<li>给服务器安装 Go 插件</li>
+<li>打开命令行输入 Go: Install/Update 什么的，之后全选安装</li>
+</ol>
+</li>
+</ol>
+<h1 id="本地安装go开发环境">本地安装Go开发环境</h1>
+<p>打开<a href="https://golang.google.cn/doc/install">官网</a>下载后直接安装即可，现在的版本不需要配置PATH确实方便了些。<br>
+<img src="https://dove-gugugu.github.io//post-images/1715235976725.png" alt="go官网安装步骤" loading="lazy"><br>
+<img src="https://dove-gugugu.github.io//post-images/1715235989188.png" alt="go安装界面" loading="lazy"><br>
+安装只需要选择下安装目录，安装好后打开命令行看下已经安装成功了<br>
+<img src="https://dove-gugugu.github.io//post-images/1715236019250.png" alt="" loading="lazy"></p>
+<h2 id="安装多个go版本">安装多个Go版本</h2>
+<p>我们可以在同一台计算机上安装多个Go版本。安装的版本可以前往官网的<a href="https://golang.google.cn/dl/">版本列表</a>来查看。<br>
+这里翻译下官网的操作：</p>
+<blockquote>
+<p>注意：要使用这里描述的方法安装，需要安装<a href="https://git-scm.com/">git</a>。</p>
+</blockquote>
+<p>要安装其他Go版本，请运行<a href="https://golang.google.cn/cmd/go/#hdr-Compile_and_install_packages_and_dependencies"><code>go install</code>命令</a>，指定要安装的版本的下载位置。下面的示例使用版本1.10.7进行说明：</p>
+<pre><code class="language-bash">$ go install golang.org/dl/go1.10.7@latest
+$ go1.10.7 download
+</code></pre>
+<p>要使用新下载的版本运行<code>go</code>命令，请将版本号附加到<code>go</code>命令，如下所示：</p>
+<pre><code class="language-bash">$ go1.10.7 version
+go version go1.10.7 linux/amd64
+</code></pre>
+<p>当您安装了多个版本时，您可以发现每个版本的安装位置，查看版本的<code>GOROOT</code>值。例如，运行如下命令：</p>
+<pre><code class="language-bash">$ go1.10.7 env GOROOT
+</code></pre>
+<p>要卸载下载的版本，只需删除由其<code>GOROOT</code>环境变量和goX.Y.Z二进制文件指定的目录。</p>
+<h1 id="docker部署go开发环境">Docker部署Go开发环境</h1>
+<blockquote>
+<p>详见：<a href="https://zhuanlan.zhihu.com/p/412197352">使用 Docker 一步一步搭建 Go 语言开发环境</a></p>
+</blockquote>
+<p>发现有大佬 docker 来实现Go开发环境的搭建，十分厉害，这里简单记录下。</p>
+<h3 id="自定义-go-shell-脚本来执行-go">自定义 Go Shell 脚本来执行 go</h3>
+<pre><code class="language-bash">#!/bin/bash
+​
+docker run --rm -it \
+    -u $UID:$UID \
+    -e XDG_CACHE_HOME=/tmp/.cache \
+    -e GOPROXY=https://goproxy.cn \
+    -v $PWD:/srv/app \
+    -v $HOME/go:/go \
+    -w /srv/app \
+    -p 8080:8080 \
+    golang:alpine go $@
+</code></pre>
+<ul>
+<li><code>-it</code> 参数使运行的容器可以接受交互操作，所以按 <code>Ctrl + c</code> 就可以终止程序了</li>
+<li><code>-u</code> 参数指定了当前用户 ID。使初始化 go.mod 的权限为当前用户而非 root 权限</li>
+<li><code>-e</code> Docker 用来设置容器运行时的环境变量
+<ul>
+<li><code>GOPROXY</code>给Go提供镜像加速功能</li>
+<li><code>XDG_CACHE_HOME</code>防止缓存用途的目录因为权限问题创建失败</li>
+</ul>
+</li>
+<li><code>-v</code> Docker 挂载目录的参数
+<ul>
+<li><code>$PWD</code> 代表当前执行命令的位置，<code>/srv/app</code> 是镜像容器中的目录。</li>
+<li>映射目录 <code>-v $HOME/go:/go</code>，这是因为 go mod 会把软件包安装到 $GOPATH 定义的位置，这个位置如果不映射到容器外的目录，每次执行结束都会跟随容器一起销毁，所以每次都会要重新项目依赖的安装软件包。</li>
+</ul>
+</li>
+<li><code>-w</code> Docker 设置容器运行时的工作主目录。这主要是为了配合上面的 <code>-v</code> 参数来执行当前目录下的 go 代码</li>
+</ul>
+<h3 id="自定义编辑脚本">自定义编辑脚本</h3>
+<p>上面自定义的 go Shell 脚本虽然也能执行 build 命令，但我发现编译后的执行文件无法在容器外执行。因为上面的自定义脚本使用的是 alpine 标签的 go 语言 Docker 镜像。要解决这个问题有两个方案：</p>
+<ol>
+<li>采用和但前开发系统一致的 Docker 镜像。</li>
+<li>使用 Go 语言的交叉编译功能。</li>
+</ol>
+<p>使用交叉编译功能可参考以下脚本：</p>
+<pre><code class="language-bash">#!/bin/bash
+​
+docker run --rm -it \
+    -u $UID:$UID \
+    -e XDG_CACHE_HOME=/tmp/.cache \
+    -e GOPROXY=https://goproxy.cn \
+    -e CGO_ENABLED=0 \
+    -e GOOS=linux \
+    -e GOARCH=amd64 \
+    -v $PWD:/srv/app \
+    -v ~/Services/go:/go \
+    -w /srv/app \
+    golang:alpine go build $@
+</code></pre>
+<p>该脚本添加了 <code>CGO_ENABLED</code>，<code>GOOS</code>，<code>GOARCH</code> 这三个交叉编译环境变量。并添加了 <code>build</code> 参数</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[MySQL基础调优]]></title>
+        <id>https://dove-gugugu.github.io/post/mysql-ji-chu-diao-you/</id>
+        <link href="https://dove-gugugu.github.io/post/mysql-ji-chu-diao-you/">
+        </link>
+        <updated>2024-05-08T07:17:43.000Z</updated>
+        <summary type="html"><![CDATA[<p>参加MySQL技能强化训练营做的笔记，从硬件优化到MySQL调优，实现从BIOS设置、SSD存储、文件系统选择，到内核参数和数据库配置的基础优化</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>参加MySQL技能强化训练营做的笔记，从硬件优化到MySQL调优，实现从BIOS设置、SSD存储、文件系统选择，到内核参数和数据库配置的基础优化</p>
+<!-- more -->
+<h2 id="硬件层相关优化">硬件层相关优化</h2>
+<h3 id="内存方面">内存方面</h3>
+<ol>
+<li>修改BIOS设置中的Memory Frequency，选择<code>Maximum Performance</code></li>
+<li>在内存设置菜单中，启用<code>Node Interleaving</code>，避免NUMA（非统一内存访问）问题<br>
+<img src="https://dove-gugugu.github.io//post-images/1715156713845.png" alt="NUMA" loading="lazy"><br>
+执行<code>numactl --hardware</code>可以查看硬件对 NUMA 的支持信息：<br>
+<img src="https://dove-gugugu.github.io//post-images/1715156769067.png" alt="" loading="lazy"><br>
+执行<code>numactl --show</code>显示当前的 NUMA 设置：<br>
+<img src="https://dove-gugugu.github.io//post-images/1715156796923.png" alt="" loading="lazy"></li>
+<li>升级内存容量，没有什么是加内存不能解决的</li>
+</ol>
+<h3 id="磁盘存储方面">磁盘存储方面</h3>
+<ol>
+<li>建议使用SSD磁盘</li>
+<li>磁盘RAID级别尽量选择RAID 10，而不是RAID 5。RAID 10虽然性能优异，但牺牲了存储空间。如果存储需求较大，可以考虑使用RAID 6或RAID 50，它们在提供冗余的同时，存储效率更高。</li>
+</ol>
+<blockquote>
+<p>补充说明<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup><br>
+<strong>RAID0</strong>：数据被分成从512字节到数兆字节的若干块后，再交替写到磁盘中。第1块被写到磁盘1中，第2块被写到磁盘2中，如此类推。当系统到达阵列中的最后一个磁盘时，就写到磁盘1的下一分段。将I/O负载平均分配到所有的驱动器中。由于驱动器可以同时写或读，使得性能显著提高。理论I/O速度相当于单盘的N倍。<br>
+<strong>RAID1</strong>：可以由软件或硬件方式实现。所有数据都被写入两个独立的物理磁盘。磁盘本质上是彼此的镜像。如果一个磁盘出现故障，可以使用另一个磁盘来检索数据。读快写慢。<br>
+<strong>RAID5</strong>：数据的奇偶校验信息存储到除自身以外的其他每一块硬盘设备上，没有备份硬盘中的真实数据信息。当硬盘设备出现问题后通过奇偶校验信息来尝试重建损坏的数据，这样的技术特性“妥协”地兼顾了硬盘设备的读写速度、数据安全性与存储成本问题。<br>
+<strong>RAID6</strong>：引入双重校验的概念，它可以保护阵列中同时出现两个磁盘失效时，阵列仍能够继续工作，不会发生数据丢失。它的成本要高于 RAID5 许多，因此， RAID6 很少得到实际应用，主要用于对数据安全等级要求非常高的场合。它一般是替代 RAID10 方案的经济性选择。<br>
+<strong>RAID10</strong>：也就是RAID0+1，使用磁盘镜像和条带化的组合。数据通常先镜像，然后条带化。如果在一个条带组中丢失驱动器，则必须从另一个条带组中访问数据，因为条带组没有奇偶性。RAID 1+0至少需要4个物理磁盘。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>比较项</th>
+<th>RAID 0</th>
+<th>RAID 1</th>
+<th>RAID 5</th>
+<th>RAID 6</th>
+<th>RAID 10</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>机制</td>
+<td>数据分块、数据条带化，分布在阵列的各个驱动器上。</td>
+<td>数据分别写入数据盘和镜像盘，存储两次。</td>
+<td>数据是条带的，奇偶校验数据分布在所有驱动器上。</td>
+<td>块级条带和双分布式奇偶校验，冗余信息重复。</td>
+<td>数据同时镜像和分条。</td>
+</tr>
+<tr>
+<td>硬盘数</td>
+<td>2以上</td>
+<td>2以上偶数</td>
+<td>3到16个</td>
+<td>4个以上</td>
+<td>4以上</td>
+</tr>
+<tr>
+<td>容错</td>
+<td>没有</td>
+<td>单驱动失败</td>
+<td>单驱动失败</td>
+<td>两个驱动器故障</td>
+<td>每个子阵列最多有1个硬盘故障</td>
+</tr>
+<tr>
+<td>读性能</td>
+<td>高</td>
+<td>媒介</td>
+<td>低</td>
+<td>低</td>
+<td>高</td>
+</tr>
+<tr>
+<td>写性能</td>
+<td>高</td>
+<td>媒介</td>
+<td>低</td>
+<td>低</td>
+<td>媒介</td>
+</tr>
+<tr>
+<td>利用率</td>
+<td>100%</td>
+<td>50%</td>
+<td>67% - 94%</td>
+<td>50% - 88% (N-2)/N</td>
+<td>50%</td>
+</tr>
+<tr>
+<td>典型应用</td>
+<td>高端工作站，数据记录，实时渲染，非常短暂的数据。</td>
+<td>操作系统，事务数据库，可用于关键存储和小型服务器。</td>
+<td>数据仓库，网络服务，归档</td>
+<td>数据归档、备份到磁盘、高可用性解决方案、大容量服务器</td>
+<td>快速数据库，文件服务器，应用服务器</td>
+</tr>
+</tbody>
+</table>
+<h2 id="文件系统层面">文件系统层面</h2>
+<ol>
+<li>使用<code>deadline</code>I/O调度器，使用<code>deadline</code>I/O调度器可以减少I/O操作的延迟，尽量不要用cfq</li>
+<li>不要使用ext3，使用xfs文件系统。增加<code>noatime</code>, <code>nodiratime</code>, <code>nobarrier</code>这几个选项禁止记录文件或目录最近一次访问时间戳</li>
+</ol>
+<p><strong>上述三者I/O调度器（I/O Scheduler）的区别：</strong></p>
+<ol>
+<li><strong>CFQ (Completely Fair Queueing)</strong>:
+<ul>
+<li><strong>原理</strong>：CFQ调度器是一种基于完全公平队列的调度算法，它旨在为所有运行中的进程提供公平的服务。CFQ通过为每个进程创建一个独立的队列来实现这一点，从而确保每个进程都能获得相等的磁盘访问时间。</li>
+<li><strong>特点</strong>：CFQ适合于多用户环境或有大量并发I/O操作的场景，因为它可以提供较好的公平性。但这种调度器在处理单个进程的大量I/O请求时会尝试在所有进程之间平均分配磁盘时间，这可能导致单个进程的I/O延迟增加。</li>
+</ul>
+</li>
+<li><strong>Deadline</strong>:
+<ul>
+<li><strong>原理</strong>：<code>deadline</code>调度器通过设置一个截止时间（deadline）来确保每个I/O请求都能在特定的时间内得到服务。它维护了两个队列：一个用于处理请求的当前队列，另一个用于存放超出截止时间的请求。</li>
+<li><strong>特点</strong>：<code>deadline</code>调度器特别适合于需要低延迟的实时应用，因为它可以保证I/O请求不会无限期地等待。通过设置截止时间，可以减少I/O操作的延迟，特别是在有实时性要求的场景中。</li>
+</ul>
+</li>
+<li><strong>Noop (No Operation)</strong>:
+<ul>
+<li><strong>原理</strong>：<code>noop</code>调度器是一种非常简单的调度器，它按照I/O请求到达的顺序来处理它们，即先进先出（FIFO）。</li>
+<li><strong>特点</strong>：<code>noop</code>调度器的性能通常不如<code>deadline</code>或<code>cfq</code>，因为它没有进行任何优化来减少延迟或提供公平性。但在某些特定的工作负载下，如顺序读写操作，<code>noop</code>可能会表现得更好，因为它避免了额外的调度开销。</li>
+</ul>
+</li>
+</ol>
+<h2 id="linux内核参数方面">linux内核参数方面</h2>
+<ol>
+<li>可修改<code>vm.swappiness</code>，降低swap使用率
+<ul>
+<li>参数值大小对如何使用swap分区有很大联系。值越大表示越倾向于使用swap，越小表示越积极使用物理内存。默认值为60，表示内存使用率超过100-60=40%时开始使用交换分区</li>
+</ul>
+</li>
+<li>将<code>vm.dirty_background_ratio</code>设置为5-10，将<code>vm.dirty_ratio</code>设置为它的两倍左右，以确保能持续将脏数据刷新到磁盘，避免瞬间I/O写，产生严重等待
+<ul>
+<li><code>vm.dirty_background_ratio</code> 是内存可以填充脏数据的百分比</li>
+<li><code>vm.dirty_ratio</code>是可以用脏数据填充的绝对最大系统内存量</li>
+</ul>
+</li>
+<li>可以考虑调整<code>kernel.shmall</code>和<code>kernel.shmmax</code>参数，以优化共享内存的使用，这对于某些内存密集型应用很有帮助
+<ul>
+<li><code>kernel.shmall</code>参数表示系统任意时刻可以分配的所有共享内存段的总和的最大值</li>
+<li><code>kernel.shmmax</code>该参数定义了共享内存段的最大尺寸（以字节为单位）</li>
+</ul>
+</li>
+</ol>
+<h2 id="mysql参数优化">Mysql参数优化</h2>
+<ol>
+<li><code>innodb_buffer_pool_size</code>设置为物理内存的20%-65%左右</li>
+<li>通过<code>innodb_log_file_size</code>来调节Redo log的空间，避免太大增加MySQL恢复的时间</li>
+<li><code>skip_name_resolve</code>：生产上建议开启成1，这样mysql server不会对客户端连接使用反向dns解析，否则经常会出现客户端连上后有timeout现象，如果设成了1带来的问题就是你不能在mysql中使用主机名来对客户端权限进行划分，而是需要使用ip</li>
+</ol>
+<h3 id="配置的innodb_buffer_pool_size是否合适">配置的innodb_buffer_pool_size是否合适</h3>
+<p>可以通过分析InnoDB缓冲池的性能来验证当前的<code>innodb_buffer_pool_size</code>是否合适。</p>
+<p>可以使用以下公式计算InnoDB缓冲池性能：<br>
+<code>Performance = innodb_buffer_pool_reads / innodb_buffer_pool_read_requests * 100</code><br>
+<strong><code>innodb_buffer_pool_reads</code></strong>：表示InnoDB缓冲池无法满足的请求数。需要从磁盘中读取。<br>
+<strong><code>innodb_buffer_pool_read_requests</code></strong>：表示从内存中读取逻辑的请求数。</p>
+<p>例如，用docker临时新建一个MySQL，检查当前InnoDB缓冲池的性能</p>
+<pre><code class="language-sql">show status like 'innodb_buffer_pool_read%'; 
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://dove-gugugu.github.io//post-images/1715177177504.png" alt="" loading="lazy"></figure>
+<p class='katex-block'><span class="katex-display"><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi mathvariant="normal">计</mi><mi mathvariant="normal">算</mi><mi mathvariant="normal">未</mi><mi mathvariant="normal">命</mi><mi mathvariant="normal">中</mi><mi mathvariant="normal">率</mi><mi mathvariant="normal">：</mi><mfrac><mtext>Innodb_buffer_pool_reads</mtext><mtext>Innodb_buffer_pool_read_requests</mtext></mfrac><mo>×</mo><mn>100</mn><mi mathvariant="normal">%</mi></mrow><annotation encoding="application/x-tex">计算未命中率：
+\frac{\text{Innodb\_buffer\_pool\_reads}}{\text{Innodb\_buffer\_pool\_read\_requests}} \times 100\%
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:2.39044em;vertical-align:-0.996em;"></span><span class="mord cjk_fallback">计</span><span class="mord cjk_fallback">算</span><span class="mord cjk_fallback">未</span><span class="mord cjk_fallback">命</span><span class="mord cjk_fallback">中</span><span class="mord cjk_fallback">率</span><span class="mord cjk_fallback">：</span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.39444em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord text"><span class="mord">Innodb_buffer_pool_read_requests</span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.6999999999999997em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord text"><span class="mord">Innodb_buffer_pool_reads</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.996em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.80556em;vertical-align:-0.05556em;"></span><span class="mord">1</span><span class="mord">0</span><span class="mord">0</span><span class="mord">%</span></span></span></span></span></p>
+<p>即 1020 / 15602 * 100% = 6.5376233816177413152159979489809%</p>
+<p>这个未命中率告诉我们有多少比例的读请求没有直接从缓冲池中找到所需的数据页，而不得不从磁盘中读取。这里意味着InnoDB可以满足缓冲池本身的大部分请求。从磁盘完成读取的百分比非常小。因此无需增加innodb_buffer_pool_size值。</p>
+<p><strong>InnoDB buffer pool 命中率：</strong></p>
+<p class='katex-block'><span class="katex-display"><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mfrac><mtext>innodb_buffer_pool_read_requests</mtext><mrow><mtext>innodb_buffer_pool_read_requests</mtext><mo>+</mo><mtext>innodb_buffer_pool_reads</mtext></mrow></mfrac><mo>×</mo><mn>100</mn><mi mathvariant="normal">%</mi></mrow><annotation encoding="application/x-tex">\frac{\text{innodb\_buffer\_pool\_read\_requests}}{\text{innodb\_buffer\_pool\_read\_requests} + \text{innodb\_buffer\_pool\_reads}} \times 100\%
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:2.39044em;vertical-align:-0.996em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.39444em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord text"><span class="mord">innodb_buffer_pool_read_requests</span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mord text"><span class="mord">innodb_buffer_pool_reads</span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.6999999999999997em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord text"><span class="mord">innodb_buffer_pool_read_requests</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.996em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.80556em;vertical-align:-0.05556em;"></span><span class="mord">1</span><span class="mord">0</span><span class="mord">0</span><span class="mord">%</span></span></span></span></span></p>
+<p>此值低于99%，则可以考虑增加innodb_buffer_pool_size。</p>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="fn1" class="footnote-item"><p><a href="https://zhuanlan.zhihu.com/p/567159708">超详细各种RAID详细对比，补齐盲区</a> <a href="#fnref1" class="footnote-backref">↩︎</a></p>
+</li>
+</ol>
+</section>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Gridea自定义主题组件]]></title>
+        <id>https://dove-gugugu.github.io/post/gridea-configuration/</id>
+        <link href="https://dove-gugugu.github.io/post/gridea-configuration/">
+        </link>
+        <updated>2024-05-04T11:14:17.000Z</updated>
+        <summary type="html"><![CDATA[<p>本博客是使用 Gridea + GitHub Pages 搭建起来的，但是 Gridea 自带的主题比较少，所以萌生了自己小改一下当前主题的想法，给当前主题添加些小组件并使用云函数防止私有Key泄露。</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>本博客是使用 Gridea + GitHub Pages 搭建起来的，但是 Gridea 自带的主题比较少，所以萌生了自己小改一下当前主题的想法，给当前主题添加些小组件并使用云函数防止私有Key泄露。</p>
+<!-- more -->
+<h2 id="文件结构">文件结构</h2>
+<p>首先是简单了解下主题的文件结构，Gridea 的主题都在 <code>/themes</code> 文件夹中，该目录下每个文件夹都是一个主题，以自带的 fly 主题为例，文件结构为：</p>
+<pre><code class="language-bash">fly - 主题文件夹名称 (建议用小写，中划线分隔)
+├── assets - 资源文件夹（必须，不可更名）
+│   ├── media - 主题静态资源存放目录（可选，不可更名）
+│   │   └── fonts - 字体图标文件夹（示例）
+│   │   │   ├── icomoon.ttf
+│   │   │   └── icomoon.woff
+│   │   └── images - 主题用图片文件（示例）
+│   └── styles - 样式文件夹（必须，不可更名）
+│       ├── _blocks - 样式模块文件夹（可选，可自定义命名）
+│       │   ├── footer.less
+│       │   ├── header.less
+│       │   └── tag.less
+│       ├── _core - 样式模块文件夹（可选，可自定义命名）
+│       │   ├── base.less
+│       │   ├── colors.less
+│       └── main.less - 主样式文件 (必须，不可更名)
+└── templates - 页面模版文件夹（必须，不可更名）
+│   ├── _blocks - 页面模版文件夹（可选，可自定义命名）
+│   │   ├── footer.ejs
+│   │   ├── head.ejs
+│   │   ├── header.ejs
+│   ├── index.ejs - 主页，列表页 (必须，不可更名)
+│   ├── post.ejs - 文章页 (必须，不可更名)
+│   ├── archives.ejs - 归档页 (必须，不可更名)
+│   ├── tags.ejs - 标签列表页 (必须，不可更名)
+│   ├── tag.ejs - 标签详情页 (必须，不可更名)
+│   └── friends.ejs - 自定义模版 (可选，任意命名)
+└── config.json - 主题配置文件 (可选，推荐)
+└── style-override.js - 主题样式自定义文件 (可选)
+</code></pre>
+<p>其中值得注意的是，页面主题都是由 ejs 模板引擎生成的，样式文件也是 less 格式，统一由 Gridea 根据模板文件生成静态文件同步到 Github 上，Github Pages 展示页面。</p>
+<h2 id="给当前主题添加一言">给当前主题添加一言</h2>
+<h3 id="一言api接口">一言api接口</h3>
+<p><a href="https://hitokoto.cn/">一言主站</a><br>
+一言是个很优秀的短句api，每次调用都会随机返回一个句子，可以给博客增色不少。</p>
+<p>根据一言的文档我们可以根据需求得到下列api接口：<br>
+<code>https://v1.hitokoto.cn/?c=d&amp;c=i&amp;encode=text</code><br>
+其中，参数<code>c</code>为句子类型，d和i表示返回的类型为文学和诗词；<code>encode</code>为返回编码，text表示返回纯洁文本</p>
+<h3 id="修改模板">修改模板</h3>
+<p>以simple主题为例，原模板是静态的固定文字，我们需要调用一言接口来实现动态的展示文字，故而需要写个简单的js来修改<code>div.site-description</code>的内容。</p>
+<figure data-type="image" tabindex="1"><img src="https://dove-gugugu.github.io//post-images/1716450250302.png" alt="" loading="lazy"></figure>
+<p>我们可以直接在<code>scripts.ejs</code>中新增一段js来调用一言接口</p>
+<figure data-type="image" tabindex="2"><img src="https://dove-gugugu.github.io//post-images/1716450272368.png" alt="" loading="lazy"></figure>
+<pre><code class="language-html">&lt;script&gt;
+    // 获取一言api数据并更新description div标签的文本内容和meta标签的content内容
+    fetch('https://v1.hitokoto.cn/?c=d&amp;c=i&amp;encode=text')
+      .then(response =&gt; response.text())
+      .then(data =&gt; {
+        // 更新description div标签的文本内容
+        document.getElementsByClassName('site-description')[0].innerText = data;
+        // 更新meta标签的content内容
+        document.querySelector('meta[name=description]').setAttribute('content', data);
+      })
+      .catch(error =&gt; {
+        console.error('访问一言api发生错误:', error);
+      });
+&lt;/script&gt;
+</code></pre>
+<p>这样就搞定了，记得同步到GitHub上哦。</p>
+<h2 id="添加实时天气组件">添加实时天气组件</h2>
+<p>现在来点更有意思的，根据当前访问的ip地址来显示该ip地址所在地区的实时天气。大体思路为调用高德Web服务API来实现ip定位和天气查询，然后使用华为云函数来访问上述接口以此保护私有Key不在前端泄露，最后博客直接调用封装好的云函数来实现。</p>
+<h3 id="调用高德api">调用高德API</h3>
+<p>首先是采用高德地图提供的接口来实现ip定位和天气查询。调用高德家的接口需要注册个开发者账号来获取到自己的Key，获取到Key之后可以开始调用接口来实现具体代码逻辑了。</p>
+<figure data-type="image" tabindex="3"><img src="https://dove-gugugu.github.io//post-images/1716450348605.png" alt="" loading="lazy"></figure>
+<table>
+<thead>
+<tr>
+<th>服务类型</th>
+<th>URL</th>
+<th>请求方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IP定位API</td>
+<td>https://restapi.amap.com/v3/ip?parameters</td>
+<td>GET</td>
+</tr>
+<tr>
+<td>天气查询API</td>
+<td>https://restapi.amap.com/v3/weather/weatherInfo?parameters</td>
+<td>GET</td>
+</tr>
+</tbody>
+</table>
+<p>IP定位的接口可以不写ip参数，根据当前访问的ip来反显地址。而且返回的adcode可以直接给天气查询接口使用，比较方便。</p>
+<p>但是实际测试时发现有个问题，如下图所示，广州市的adcode返回的是<code>440000</code>，是广东省的编码，深圳返回正常的编码<code>440300</code>，这就影响了之后调用天气接口返回的信息了（天气可能有点差别，返回的地市区信息也会只显示为省份）</p>
+<p><img src="https://dove-gugugu.github.io//post-images/1716450371017.png" alt="" loading="lazy"><br>
+<img src="https://dove-gugugu.github.io//post-images/1716450378937.png" alt="" loading="lazy"></p>
+<p>所以在实际调用代码中，我又调用了下行政区域查询接口：</p>
+<table>
+<thead>
+<tr>
+<th>URL</th>
+<th>请求方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>https://restapi.amap.com/v3/config/district?parameters</td>
+<td>GET</td>
+</tr>
+</tbody>
+</table>
+<p>简易代码如下：</p>
+<pre><code class="language-js">try {
+    let ipUrl = 'https://restapi.amap.com/v3/ip?ip=' + clientIp + '&amp;key=&lt;我的Key&gt;';
+    const ipResponse = await fetch(ipUrl);
+    if (!ipResponse.ok) {
+        throw new Error('Failed to fetch IP location');
+    }
+    const ipData = await ipResponse.json();
+
+    if (ipData.status === '1') {
+        let adcode = ipData.adcode;
+        let city = ipData.city;
+
+        const addUrl = `https://restapi.amap.com/v3/config/district?keywords=${city}&amp;subdistrict=0&amp;key=&lt;我的Key&gt;`;
+
+        const addResponse = await fetch(addUrl);
+        if (!addResponse.ok) {
+            throw new Error(`Network response was not ok: ${addResponse.status}`);
+        }
+
+        const addData = await addResponse.json();
+
+        // 检查districts是否为空
+        if (addData.districts.length &gt; 0) {
+            // 获取第一个district的adcode
+            adcode = addData.districts[0].adcode;
+        }
+
+        const weatherResponse = await fetch(`https://restapi.amap.com/v3/weather/weatherInfo?city=${adcode}&amp;key=&lt;我的Key&gt;`);
+        if (!weatherResponse.ok) {
+            throw new Error('Failed to fetch weather information.');
+        }
+        const weatherData = await weatherResponse.json();
+
+        if (weatherData.status === '1' &amp;&amp; weatherData.lives.length &gt; 0) {
+            const liveWeather = weatherData.lives[0];
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(liveWeather));
+        } else {
+            res.writeHead(500, { 'Content-Type': 'text/plain' });
+            res.end('Failed to fetch weather data.');
+        }
+    } else {
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('Failed to fetch IP location');
+    }
+} catch (error) {
+    res.writeHead(500, { 'Content-Type': 'text/plain' });
+    res.end('Failed to fetch weather data.' + error);
+}
+</code></pre>
+<h3 id="改为调用云函数">改为调用云函数</h3>
+<p>但上面的代码有个问题，那就是前端可以很方便的就看到我的Key，因为本博客是静态网页的，没有后端，所有数据在前端都可以看到，尤其是这种会访问其他地址的接口，不是很安全。所以我们需要一个类似后端的来封装以下我们调用的接口，因此我把目光放到了云函数上。找了下比较有名的云函数，发现华为云提供了每月100万次的免费请求额度，感觉还不错，所以本次就采用华为云函数来实现代码封装。</p>
+<p>华为控制台中叫做函数工作流，点击创建函数后可以选择模板，我就使用了最简单的空白模板。</p>
+<figure data-type="image" tabindex="4"><img src="https://dove-gugugu.github.io//post-images/1716450417266.png" alt="" loading="lazy"></figure>
+<p>之后将代码粘贴一下就行了——我以为这样就可以了。但是我忽略了一点，此时访问高德接口的已经不是我们访问博客的ip了，而是云函数，所以就ip地址这里需要修改一下，获取到实际的客户端ip地址：</p>
+<pre><code class="language-js">const clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+</code></pre>
+<p>除此之外还需要修改下<code>bootstrap</code>中调用的node版本，改为<strong>18.15</strong>，因为这个版本已经内置了fetch，我们才能正常使用。</p>
+<pre><code>/opt/function/runtime/nodejs18.15/rtsp/nodejs/bin/node $RUNTIME_CODE_ROOT/index.js
+</code></pre>
+<p>这里是最终的<code>index.js</code>的完整代码:</p>
+<pre><code class="language-js">const http = require('http'); // Import Node.js core module
+
+var server = http.createServer(async function (req, res) {   // Create web server
+    if (req.url.startsWith(&quot;/weather&quot;)) {
+        try {
+            const clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+            let ipUrl = 'https://restapi.amap.com/v3/ip?ip=' + clientIp + '&amp;key=&lt;我的Key&gt;';
+            const ipResponse = await fetch(ipUrl);
+            if (!ipResponse.ok) {
+                throw new Error('Failed to fetch IP location');
+            }
+            const ipData = await ipResponse.json();
+
+            if (ipData.status === '1') {
+                let adcode = ipData.adcode;
+                let city = ipData.city;
+
+                const addUrl = `https://restapi.amap.com/v3/config/district?keywords=${city}&amp;subdistrict=0&amp;key=&lt;我的Key&gt;`;
+
+                const addResponse = await fetch(addUrl);
+                if (!addResponse.ok) {
+                    throw new Error(`Network response was not ok: ${addResponse.status}`);
+                }
+
+                const addData = await addResponse.json();
+
+                // 检查districts是否为空
+                if (addData.districts.length &gt; 0) {
+                    // 获取第一个district的adcode
+                    adcode = addData.districts[0].adcode;
+                }
+
+                const weatherResponse = await fetch(`https://restapi.amap.com/v3/weather/weatherInfo?city=${adcode}&amp;key=&lt;我的Key&gt;`);
+                if (!weatherResponse.ok) {
+                    throw new Error('Failed to fetch weather information.');
+                }
+                const weatherData = await weatherResponse.json();
+
+                if (weatherData.status === '1' &amp;&amp; weatherData.lives.length &gt; 0) {
+                    const liveWeather = weatherData.lives[0];
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(liveWeather));
+                } else {
+                    res.writeHead(500, { 'Content-Type': 'text/plain' });
+                    res.end('Failed to fetch weather data.');
+                }
+            } else {
+                res.writeHead(500, { 'Content-Type': 'text/plain' });
+                res.end('Failed to fetch IP location');
+            }
+        } catch (error) {
+            res.writeHead(500, { 'Content-Type': 'text/plain' });
+            res.end('Failed to fetch weather data.' + error);
+        }
+    } else {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Invalid Request!');
+    }
+});
+
+server.listen(8000, '127.0.0.1'); // Listen for incoming requests on port 8000
+</code></pre>
+<p>改好后点击部署，然后记得添加触发器作为提供给外部的网关，最后封装的接口地址即为触发器的调用URL</p>
+<figure data-type="image" tabindex="5"><img src="https://dove-gugugu.github.io//post-images/1716450443121.png" alt="" loading="lazy"></figure>
+<h3 id="添加组件">添加组件</h3>
+<p>最后一步就是修改博客主题的模板了</p>
+<p>1、在<code>sidebar.ejs</code>中新增一个显示天气的div</p>
+<pre><code class="language-html">&lt;!-- 新增天气模块 --&gt;
+&lt;div class=&quot;weather-info&quot;&gt;
+    &lt;div class=&quot;weather-temperature&quot;&gt;&lt;/div&gt;
+    &lt;div class=&quot;weather-details&quot;&gt;
+        &lt;div class=&quot;weather-city&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;weather-condition&quot;&gt;&lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+</code></pre>
+<p>2、在<code>main.less</code>中添加下样式，让其更好看一点</p>
+<pre><code class="language-less">.weather-info {
+  display: flex;
+  align-items: center;
+
+  .weather-temperature {
+    flex: 1;
+    font-size: 24px;
+  }
+
+  .weather-details {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    .weather-city {
+      text-align: left;
+    }
+
+    .weather-condition {
+      text-align: left;
+    }
+  }
+}
+</code></pre>
+<p>3、最后在<code>scripts.ejs</code>中添加更新天气数据和调用云函数接口的脚本</p>
+<pre><code class="language-html">&lt;script&gt;
+  // 更新天气数据
+  function updateWeatherInfo(city, weather, temperature) {
+    // 使用获取到的数据更新DOM
+    document.querySelector('.weather-city').textContent = `${city}`;
+    document.querySelector('.weather-condition').textContent = `${weather}`;
+    document.querySelector('.weather-temperature').textContent = `${temperature}°C`;
+  }
+  // 调用云函数接口
+  fetch('https://05d001686f8e43249d001efa0d32a2a3.apig.cn-south-1.huaweicloudapis.com/weather')
+    .then(response =&gt; {
+      // 检查响应状态是否成功
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      // 将响应体转换为JSON格式
+      return response.json();
+    })
+    .then(data =&gt; {
+      // 提取所需的数据并打印
+      const { city, weather, temperature } = data;
+      updateWeatherInfo(city, weather, temperature);
+    })
+    .catch(error =&gt; {
+      // 打印错误信息
+      console.error('There has been a problem with your fetch operation:', error);
+    });
+&lt;/script&gt;
+</code></pre>
+<p>如此就大功告成啦！</p>
+<figure data-type="image" tabindex="6"><img src="https://dove-gugugu.github.io//post-images/1716450471500.png" alt="" loading="lazy"></figure>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Xtrabackup备份恢复]]></title>
+        <id>https://dove-gugugu.github.io/post/xtrabackup-bei-fen-hui-fu/</id>
+        <link href="https://dove-gugugu.github.io/post/xtrabackup-bei-fen-hui-fu/">
+        </link>
+        <updated>2024-05-02T03:10:45.000Z</updated>
+        <summary type="html"><![CDATA[<p>记录通过innobackupex全备份、恢复mysql的过程</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>记录通过innobackupex全备份、恢复mysql的过程</p>
+<!-- more -->
+<blockquote>
+<p>假定mysql数据库的配置文件为/etc/my.cnf ，数据文件存储路径为/db/data，root用户密码为123456，sock文件为/tmp/mysqld.sock，备份文件放在/data/backup/full/ 目录下</p>
+</blockquote>
+<ol>
+<li>
+<p>进行全备份：</p>
+<pre><code>sudo innobackupex --user=root --password=123456 --no-timestamp /data/backup/full/
+</code></pre>
+<p>这将在指定的目录<code>/data/backup/full/</code>中创建一个全备份。</p>
+</li>
+<li>
+<p>如果MySQL服务正在运行，请确保停止MySQL服务：</p>
+<pre><code>sudo systemctl stop mysql
+</code></pre>
+</li>
+<li>
+<p>清空数据目录：</p>
+<pre><code>sudo rm -rf /db/data/*
+</code></pre>
+<p>注意：请提前备份好数据库数据以便在需要恢复时使用。</p>
+</li>
+<li>
+<p>解压缩备份文件并恢复数据库：</p>
+<pre><code>sudo innobackupex --user=root --password=123456 --apply-log /data/backup/full/
+sudo innobackupex --user=root --password=123456 --copy-back /data/backup/full/
+</code></pre>
+<p>这将解压缩备份文件并将数据文件复制回<code>/db/data/</code>目录。</p>
+</li>
+<li>
+<p>修复文件权限：</p>
+<pre><code>sudo chown -R mysql:mysql /db/data/
+</code></pre>
+<p>这将确保MySQL用户对数据目录具有适当的权限。</p>
+</li>
+<li>
+<p>启动MySQL服务：</p>
+<pre><code>sudo systemctl start mysql
+</code></pre>
+<p>MySQL服务将会使用备份数据文件启动。</p>
+</li>
+<li>
+<p>检查MySQL服务状态：</p>
+<pre><code>sudo systemctl status mysql
+</code></pre>
+<p>如果一切正常，MySQL应该成功恢复备份数据。</p>
+</li>
+</ol>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[@Resource]]></title>
+        <id>https://dove-gugugu.github.io/post/resource/</id>
+        <link href="https://dove-gugugu.github.io/post/resource/">
+        </link>
+        <updated>2022-12-23T09:29:54.000Z</updated>
+        <content type="html"><![CDATA[<!-- more -->
+<h2 id="resource-和-autowired-的区别">@Resource 和 @Autowired 的区别</h2>
+<blockquote>
+<p>@Resource 的作用相当于@Autowired，只不过@Autowired 按 byType 自动注入</p>
+</blockquote>
+<ol>
+<li>提供方不同
+<ul>
+<li>@Autowired 是 Spring 提供的，@Resource 是 J2EE 提供的</li>
+</ul>
+</li>
+<li>装配时默认类型不同
+<ul>
+<li>@Autowired 只按 type 装配,@Resource 默认是按 name 装配</li>
+</ul>
+</li>
+<li><strong>@Autowired 默认按类型装配</strong>，默认情况下必须要求依赖对象存在，如果要<strong>允许null值</strong>，可以设置它的<strong>required属性</strong>为<strong>false</strong>。如果想<strong>使用名称装配</strong>可以<strong>结合@Qualifier注解</strong>进行使用</li>
+<li><strong>@Resource 默认按照名称装配</strong>，名称可以通过 <strong>name 属性</strong>进行指定，如果没有指定 name 属性，当注解写在字段上时，<strong>默认取字段名</strong>进行名称查找。如果注解写在 setter 方法上<strong>默认取属性名</strong>进行装配。当找不到与名称匹配的bean时<strong>才按照类型</strong>进行装配。但是需要注意的是，如果name属性一旦指定，就<strong>只会按照名称</strong>进行装配</li>
+</ol>
+<h2 id="什么时候用resource">什么时候用@Resource</h2>
+<blockquote>
+<p>使用 @Resource 可以消除 IDE 的 'Field injection is not recommended' 警告，多多少少是有点⚠洁癖在的</p>
+</blockquote>
+<h2 id="注意点">注意点</h2>
+<p>当有同一个接口被两个及以上类实现的时候，如果单单使用 @Resource 会出现希望单个Bean的匹配，却找到了多个的情况。</p>
+<p>例如有一个水果接口 <code>Fruit</code>，同时有两个实现类：<code>Apple</code>、<code>Banana</code><br>
+此时新建一个商店类<code>Store</code>注入<code>Fruit</code>接口</p>
+<pre><code class="language-java">@Component
+public class Store {
+
+    // 使用 @Resource 注入
+    @Resource
+    private Fruit fruit;
+
+    public void getFruit() {
+        // 调用Furit接口中的售卖方法
+        fruit.sell();
+    }
+
+}
+</code></pre>
+<p><strong>调用<code>getFruit()</code>方法后会出现<code>NoUniqueBeanDefinitionException</code> 异常</strong></p>
+<h3 id="why">why</h3>
+<p>首先，当@Resource 中没有设置任何属性值时统统采用的是默认的值——默认按名称装配</p>
+<blockquote>
+<p>按照 Spring Bean 的加载顺序，Store Bean 创建的时候，BeanFactory中已经创建了 Apple 和 Banana Bean</p>
+</blockquote>
+<p>当 name 属性没有被设置时，就会执行下面的分支，根据是方法注入还是属性注入，分别设置为方法名称set后面的字符串或字段名称。</p>
+<ul>
+<li>当指定 type 时</li>
+</ul>
+<blockquote>
+<p>@Resource(type = Apple.class)</p>
+</blockquote>
+<p>设置 type 属性后，isDefaultName 的值还是为 true，所以执行的还是 resolveDependency 方法。但是由于添加了类型的限制，所以也就不会匹配到多个 Bean，而产生异常。</p>
+<ul>
+<li>既指定了name属性，又指定了type类型，但是是不同的类；</li>
+</ul>
+<blockquote>
+<p>@Resource(name = “banana”, type = Apple.class)</p>
+</blockquote>
+<p>name 属性被设置为 banana，isDefaultName 变为 false，执行 resolveBeanByName 方法。但是由于找不到对应 beanName 为 banana，但是类型又为 Apple.class 的 bean，还是会抛出异常</p>
+<h3 id="总结">总结</h3>
+<figure data-type="image" tabindex="1"><img src="https://dove-gugugu.github.io//post-images/1714653979277.png" alt="" loading="lazy"></figure>
+<ul>
+<li>当@Resource不设置任何值时，isDefaultName会为true，当对应字段名称的bean或者BeanDefinition已存在时会走byName的形式，否则走byType的形式；</li>
+<li>只指定了type属性时，只有当对应的名称不存在对应的bean或BeanDefinition，才会通过byType找到唯一的一个类型匹配的bean；</li>
+<li>只指定了name属性，会执行getBean方法，根据指定的name来获取bean；</li>
+<li>既指定了name属性，又指定了type属性，会先根据那么查找对应的bean，然后进行type类型比较。</li>
+</ul>
+<h2 id="autowired-装配顺序">@Autowired 装配顺序</h2>
+<figure data-type="image" tabindex="2"><img src="https://dove-gugugu.github.io//post-images/1714654513468.svg" alt="" loading="lazy"></figure>
+<blockquote>
+<p><a href="https://www.zhihu.com/question/39356740/answer/1907479772">@Autowired和@Resource的区别是什么？</a><br>
+<a href="https://www.boris1993.com/idea-warninig-field-injection-is-not-recommended.html">IDEA 警告 Field injection is not recommended</a></p>
+</blockquote>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[@Autowired出现警告原因及解决方法]]></title>
+        <id>https://dove-gugugu.github.io/post/autowired/</id>
+        <link href="https://dove-gugugu.github.io/post/autowired/">
+        </link>
+        <updated>2022-12-23T08:35:16.000Z</updated>
+        <content type="html"><![CDATA[<!-- more -->
+<h2 id="警告出现的原因">警告出现的原因</h2>
+<p>使用 <code>@Autowired</code> 注解对字段进行依赖注入时会出现警告</p>
+<p>大概意思：</p>
+<blockquote>
+<p>不建议直接在字段上进行依赖注入。<br>
+Spring 开发团队建议：在 Java Bean 中永远使用构造方法进行依赖注入。对于必须的依赖，永远使用断言来确认。</p>
+</blockquote>
+<p>所谓基于 field 的注入，就是在变量上使用 <code>@Autowired</code> 注解进行依赖注入。这是我们最熟悉的一种方式，同时，也正是 Spring 团队所不推荐的方式。它用起来就像这样：</p>
+<pre><code class="language-java">@Autowired  
+private DependencyClass aDependency; 
+</code></pre>
+<h2 id="基于-field-的注入可能会有什么问题">基于 field 的注入可能会有什么问题</h2>
+<p>基于 field 的注入，虽然不是绝对禁止使用，但是它可能会带来一些隐含的问题。比如，在<a href="https://blog.csdn.net/ruangong1203/article/details/50992147">这篇博客</a>中，作者给出了这样的一个代码：</p>
+<pre><code class="language-java">@Autowired  
+private User user;  
+  
+private String school;  
+  
+public UserAccountServiceImpl() {  
+    this.school = user.getSchool();  
+}  
+</code></pre>
+<p>初看起来好像没有什么问题，<code>User</code> 类会被作为一个依赖被注入到当前类中，同时这个类的 <code>school</code> 属性将在初始化时通过 <code>user.getSchool()</code> 方法来获得值。但是，这个代码在运行时，却会抛出如下的异常：</p>
+<p><code>Exception in thread &quot;main&quot; org.springframework.beans.factory.BeanCreationException: Error creating bean with name '...' defined in file [....class]: Instantiation of bean failed; nested exception is org.springframework.beans.BeanInstantiationException: Failed to instantiate [...]: Constructor threw exception; nested exception is java.lang.NullPointerException </code></p>
+<p>即，在执行 <code>UserAccountServiceImpl()</code> 这个构造方法时出现了 NPE。</p>
+<p>出现这个问题的原因是，Java 在初始化一个类时，是按照 <code>静态变量或静态语句块 –&gt; 实例变量或初始化语句块 –&gt; 构造方法 -&gt; @Autowired</code> 的顺序 <a href="https://stackoverflow.com/questions/26230493/spring-bean-is-autowired-attribute-initialised-before-constructor/26231555#26231555">1</a>，那么显而易见，在执行这个类的构造方法时，<code>user</code> 对象尚未被注入，它的值还是 <code>null</code>，从而产生了 NPE。</p>
+<h2 id="可选的解决方案">可选的解决方案</h2>
+<ol>
+<li>基于构造方法的注入
+<ol>
+<li>可能会因为依赖过多而显得冗长，需要注意的是在 <code>Spring 4.3</code> 及以后的版本中，如果这个类只有一个构造方法，那么这个构造方法上面也可以不写 <code>@Autowired</code> 注解</li>
+</ol>
+</li>
+<li>基于 setter 方法的注入
+<ol>
+<li>建议用于注入非必须的依赖，同时在类中应该对这个依赖提供一个合理的默认值</li>
+<li>在 <code>Spring 4.3</code> 及以后的版本中，setter 上面的 <code>@Autowired</code> 注解是可以不写的</li>
+</ol>
+</li>
+<li>使用 <code>@Resource</code> 注解替换 <code>@Autowired</code>
+<ol>
+<li>因为构造方法和 setter 方法没有基于 field 方便，所以还是会找别的方法，比如@Resurce</li>
+<li>详见 <a href="https://dove-gugugu.github.io/post/resource/">@Resource</a></li>
+</ol>
+</li>
+</ol>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Feign笔记]]></title>
+        <id>https://dove-gugugu.github.io/post/feign-bi-ji/</id>
+        <link href="https://dove-gugugu.github.io/post/feign-bi-ji/">
+        </link>
+        <updated>2022-09-19T08:07:25.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="feign原理简述">Feign原理简述</h1>
+<ul>
+<li>启动时，程序会进行包扫描，扫描所有包下所有@FeignClient注解的类，并将这些类注入到spring的IOC容器中。当定义的Feign中的接口被调用时，通过JDK的动态代理来生成RequestTemplate。</li>
+<li>RequestTemplate中包含请求的所有信息，如请求参数，请求URL等。</li>
+<li>RequestTemplate生成Request，然后将Request交给client处理，这个client默认是JDK的HTTPUrlConnection，也可以是OKhttp、Apache的HTTPClient等。</li>
+<li>最后client封装成LoadBaLanceClient，结合ribbon负载均衡地发起调用。</li>
+</ul>
+<h1 id="使用feign客户端">使用feign客户端</h1>
+<blockquote>
+<p>在服务消费者调用服务提供者时，底层通过HTTP Client 的方式访问</p>
+</blockquote>
+<ol>
+<li>使用注解@EnableFeignClients <strong>启用</strong> feign客户端</li>
+</ol>
+<pre><code class="language-java">@SpringBootApplication
+@EnableFeignClients
+public class TestApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(TestApplication.class, args);
+    }
+}
+</code></pre>
+<ol start="2">
+<li>使用注解@FeignClient <strong>定义</strong>feign客户端<br>
+该例子定义了一个feign客户端，将远程服务 http://test-service/test/echo 映射为一个本地Java方法调用。</li>
+</ol>
+<pre><code class="language-java">@FeignClient(name = &quot;test-service&quot;, path = &quot;/test&quot;)
+public interface TestService {
+    @RequestMapping(value = &quot;/echo&quot;, method = RequestMethod.GET)
+    TestModel echo(@RequestParam(&quot;parameter&quot;) String parameter);
+}
+</code></pre>
+<ol start="3">
+<li>使用注解@Autowired <strong>使用</strong>上面所定义feign的客户端</li>
+</ol>
+<pre><code class="language-java">@Autowired   
+TestService testService;
+
+public void run() {
+    // 这里的使用本地Java API的方式调用远程的Restful接口
+    TestModel dto = testService.echo(&quot;Hello,你好!&quot;);
+    log.info(&quot;echo : {}&quot;, dto);
+}
+</code></pre>
+<h2 id="feignclient注解的一些属性">FeignClient注解的一些属性</h2>
+<table>
+<thead>
+<tr>
+<th>属性名</th>
+<th>默认值</th>
+<th>作用</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>value</td>
+<td>空字符串</td>
+<td>调用服务名称，和name属性相同</td>
+<td></td>
+</tr>
+<tr>
+<td>name</td>
+<td>空字符串</td>
+<td>调用服务名称，和value属性相同</td>
+<td></td>
+</tr>
+<tr>
+<td>url</td>
+<td>空字符串</td>
+<td>全路径地址或hostname，http或https可选</td>
+<td>一般用于调试，可以手动指定@FeignClient调用的地址</td>
+</tr>
+<tr>
+<td>path</td>
+<td>空字符串</td>
+<td>自动给所有方法的requestMapping前加上前缀，类似与controller类上的requestMapping</td>
+<td></td>
+</tr>
+<tr>
+<td>decode404</td>
+<td>false</td>
+<td>配置响应状态码为404时是否应该抛出FeignExceptions</td>
+<td></td>
+</tr>
+<tr>
+<td>configuration</td>
+<td>{}</td>
+<td>自定义当前feign client的一些配置</td>
+<td>参考FeignClientsConfiguration</td>
+</tr>
+<tr>
+<td>fallback</td>
+<td>void.class</td>
+<td>熔断机制，调用失败时，走的一些回退方法，可以用来抛出异常或给出默认返回数据</td>
+<td>底层依赖hystrix，启动类要加上@EnableHystrix</td>
+</tr>
+</tbody>
+</table>
+]]></content>
+    </entry>
+</feed>

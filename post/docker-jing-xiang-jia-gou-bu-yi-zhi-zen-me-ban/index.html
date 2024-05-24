@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>Docker镜像架构不一致怎么办 | 咕咕咕的博客</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<!-- <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous"> -->
+<link href="https://cdn.bootcss.com/font-awesome/5.13.0/css/all.css" rel="stylesheet">
+<link rel="shortcut icon" href="https://dove-gugugu.github.io//favicon.ico?v=1716523516598">
+<link rel="stylesheet" href="https://dove-gugugu.github.io//styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<!-- <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script> -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2.7.16"></script>
+
+
+
+    <meta name="description" content="当镜像的架构与服务器架构不一致时，可以采用将正常运行的容器打包成新镜像的方法
+
+Docker buildx 构建多架构镜像
+详见这里
+docker buildx build --platform linux/arm64 -t discuz/..." />
+    <meta name="keywords" content="Docker" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://dove-gugugu.github.io/">
+        <img src="https://dove-gugugu.github.io//images/avatar.png?v=1716523516598" class="site-logo">
+        <h1 class="site-title">咕咕咕的博客</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      <!-- 新增搜索框 -->
+      <form id="gridea-search-form" style="position: relative" data-update="1716523516598" action="/search/">
+        <input class="search-input" autocomplete="off" spellcheck="false" name="q" placeholder="搜索文章" />
+        <!-- <i class="fas fa-search gt-c-content-color-first" style="position: absolute; top: 9px; left: 10px;"></i> -->
+      </form>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <!-- 新增天气模块 -->
+    <div class="weather-info">
+      <div class="weather-temperature"></div>
+      <div class="weather-details">
+        <div class="weather-city"></div>
+        <div class="weather-condition"></div>
+      </div>
+    </div>
+    <div class="site-description">
+      温故而知新
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://dove-gugugu.github.io//atom.xml" target="_blank">RSS</a>
+    </div>
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/dove-gugugu" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+          <a class="social-link" href="https://qm.qq.com/q/Ct9sVdkvo" target="_blank">
+            <i class="fab fa-qq"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">Docker镜像架构不一致怎么办</h2>
+            <div class="post-date">
+              2024-05-21
+              <span style="margin-left: 10px;">字数：970</span>
+              <span style="margin-left: 10px;">阅读时间：4分钟左右</span>
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://dove-gugugu.github.io/tag/_Bs_92vmT/" class="tag">
+                    Docker
+                  </a>
+                
+              </div>
+            
+            
+              <div class="feature-container" style="background-image: url('https://wallpaperaccess.com/full/2982328.jpg')">
+              </div>
+            
+            <div class="toc-container">
+              <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#docker-buildx-%E6%9E%84%E5%BB%BA%E5%A4%9A%E6%9E%B6%E6%9E%84%E9%95%9C%E5%83%8F">Docker buildx 构建多架构镜像</a></li>
+<li><a href="#%E5%BC%80%E5%90%AF-binfmt_misc-%E6%9D%A5%E8%BF%90%E8%A1%8C%E9%9D%9E%E6%9C%AC%E5%9C%B0%E6%9E%B6%E6%9E%84-docker-%E9%95%9C%E5%83%8F">开启 binfmt_misc 来运行非本地架构 Docker 镜像</a><br>
+*
+<ul>
+<li><a href="#%E9%85%8D%E7%BD%AE-binfmt_misc">配置 binfmt_misc</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            </div>
+            <div class="post-content" v-pre>
+              <p>当镜像的架构与服务器架构不一致时，可以采用将正常运行的容器打包成新镜像的方法</p>
+<!-- more -->
+<h2 id="docker-buildx-构建多架构镜像">Docker buildx 构建多架构镜像</h2>
+<p>详见<a href="https://blog.csdn.net/Canger_/article/details/122239139">这里</a></p>
+<p>docker buildx build --platform linux/arm64 -t discuz/test-for-buildx . --load</p>
+<h2 id="开启-binfmt_misc-来运行非本地架构-docker-镜像">开启 binfmt_misc 来运行非本地架构 Docker 镜像</h2>
+<p>详见<a href="https://blog.csdn.net/WZP_LOVE/article/details/121443240">这里</a></p>
+<p>启用 <code>binfmt_misc</code> ：运行一个特权容器，容器里面写好了设置脚本</p>
+<p>使用Docker镜像安装模拟器： <a href="https://hub.docker.com/r/tonistiigi/binfmt">tonistiigi/binfmt</a></p>
+<pre><code class="language-bash">docker run --privileged --rm tonistiigi/binfmt --install all
+</code></pre>
+<ul>
+<li><strong>Linux kernel &gt;= 4.8</strong>: 自该Linux内核版本 binfmt_misc 支持 fix-binary (F) flag。fix_binary 标志允许内核在容器或chroot内使用binfmt_misc注册的二进制格式处理程序，即使该处理程序二进制文件不是该容器或chroot内可见的文件系统的一部分。</li>
+<li><strong>binfmt_misc file system mounted</strong>: 需要挂载binfmt_misc文件系统，以便用户空间工具可以控制此内核功能，即注册和启用处理程序。</li>
+</ul>
+<h4 id="配置-binfmt_misc">配置 binfmt_misc</h4>
+<p>QEMU 是一个很棒的开源项目，它可以模拟很多平台。将 QEMU 和 Docker 结合起来使用能使得我们更容易的构建跨平台的容器镜像。集成 QEMU依赖于 Linux 内核功能 。Linux 内核中的 <code>binfmt_misc</code>功能可以使得内核识别任意类型的可以执行文件格式，并传递到特定的用户空间应用程序和虚拟机（<a href="https://zh.wikipedia.org/wiki/Binfmt_misc%EF%BC%89%E3%80%82%E5%BD%93">https://zh.wikipedia.org/wiki/Binfmt_misc）。当</a> Linux 遇到一种无法识别的可执行文件格式（比如说其它平台的可执行文件格式）时，它会检查有没有配置任何“用户空间应用程序”用于处理它。如果检测到了，就将可执行文件传递给该应用程序。</p>
+<p>为此，我们需要在内核当中注册其它平台的可执行文件格式。</p>
+<p>对于使用 Docker Desktop（MacOS 和 Windows 上都是）的同学，因为默认配置了 <code>binfmt_misc</code>，可以跳过这一步。而使用 Linux 发行版操作系统的同学则需要自行安装配置 <code>binfmt_misc</code>，以便能够非原生的其它平台的镜像。</p>
+<p>要在宿主机上执行其它 CPU 平台的指令，需要安装 QEMU 模拟器。因为程序执行时会在当前程序可见的文件系统中查找动态库，而在容器或chroot环境中注册的处理程序在其它的 cgroup namespace 中可能无法找到，所以需要静态编译连接的QEMU。同时，我们需要安装一个包含足够新的update-binfmts二进制文件的包，以便能够支持fix-binary（F）标志，并在注册QEMU模拟器时实际使用，这样才能结合 buildx 一起镜像跨平台构建。</p>
+<p>QEMU 和 binfmt_misc 支持工具可以通过<strong>宿主机</strong>或者<strong>Docker 容器镜像</strong>安装。但是，使用Docker镜像安装配置能让事情变得更加简单。镜像 <code>docker/binfmt</code> 中包含QEMU二进制文件和在binfmt_misc中注册QEMU的安装脚本。</p>
+<pre><code class="language-dockerfile">docker run --privileged docker/binfmt:66f9012c56a8316f9244ffd7622d7c21c1f6f28d
+</code></pre>
+<p>执行完后，我们验证下是否注册成功了。成功注册后，<code>/proc/sys/fs/binfmt_misc</code> 目录中会有多个<code>qemu-</code>前缀的文件。查看 <code>/proc/sys/fs/binfmt_misc/qemu-aarch64</code> 文件内容，可以看到 falgs 标志为 <code>OCF</code>，说明这个处理程序是通过 （F）标志注册的，能够正常的结合 buildx 完成跨平台构建。</p>
+<p><a href="https://www.cnblogs.com/tencent-cloud-native/p/14190655.html">多平台容器镜像构建就看这一篇</a><br>
+<a href="www.cnblogs.com/frankming/p/16870285.html">容器镜像多架构支持介绍</a></p>
+<p><a href="https://docs.docker.com/build/building/multi-platform/#support-on-docker-desktop">docker官网中多平台镜像的内容</a></p>
+<p>👇<br>
+Docker Desktop提供了binfmt_misc多架构支持，这意味着您可以为不同的Linux架构(如arm、mips、ppc64le，甚至s390x)运行容器。</p>
+<p>这并不需要容器本身的任何特殊配置，因为它使用了来自Docker for Mac VM的qemu-static。因此，您可以运行ARM容器，例如busybox映像的arm32v7或ppc64le变体。</p>
+
+            </div>
+            <!-- 
+              <div class="tag-container">
+                
+                  <a href="https://dove-gugugu.github.io/tag/_Bs_92vmT/" class="tag">
+                    Docker
+                  </a>
+                
+              </div>
+             -->
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://dove-gugugu.github.io/post/mysql-zhu-cong-fu-zhi-de-pei-zhi-bu-zou/">
+                  <h3 class="post-title">
+                    MySQL主从复制的配置步骤
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+<script>
+  // 获取一言api数据并更新description div标签的文本内容和meta标签的content内容
+  fetch('https://v1.hitokoto.cn/?c=d&c=i&encode=text')
+    .then(response => response.text())
+    .then(data => {
+      // 更新description div标签的文本内容
+      document.getElementsByClassName('site-description')[0].innerText = data;
+      // 更新meta标签的content内容
+      document.querySelector('meta[name=description]').setAttribute('content', data);
+    })
+    .catch(error => {
+      console.error('访问一言api发生错误:', error);
+    });
+  function updateWeatherInfo(city, weather, temperature) {
+    // 使用获取到的数据更新DOM
+    document.querySelector('.weather-city').textContent = `${city}`;
+    document.querySelector('.weather-condition').textContent = `${weather}`;
+    document.querySelector('.weather-temperature').textContent = `${temperature}°C`;
+  }
+  // 使用fetch函数发送GET请求到API
+  fetch('https://05d001686f8e43249d001efa0d32a2a3.apig.cn-south-1.huaweicloudapis.com/weather')
+    .then(response => {
+      // 检查响应状态是否成功
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      // 将响应体转换为JSON格式
+      return response.json();
+    })
+    .then(data => {
+      // 提取所需的数据并打印
+      const { city, weather, temperature } = data;
+      updateWeatherInfo(city, weather, temperature);
+    })
+    .catch(error => {
+      // 打印错误信息
+      console.error('There has been a problem with your fetch operation:', error);
+    });
+</script>
+
+
+  <style>
+    .toc-container {
+      position: fixed;
+      top: 50px;
+      /* Adjust depending on your layout */
+      right: 20px;
+      /* Adjust depending on your layout */
+      width: 200px;
+      padding: 16px 8px;
+      background-color: #fff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .toc-container .markdownIt-TOC {
+      position: sticky;
+      top: 0;
+      font-size: 12px;
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .toc-container .markdownIt-TOC:before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 8px;
+      bottom: 0;
+      width: 1px;
+      background-color: #ebedef;
+      opacity: 0.5;
+    }
+
+    .toc-container ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .toc-container li {
+      padding-left: 16px;
+    }
+
+    .toc-container li a {
+      color: #444444;
+      padding: 8px;
+      display: block;
+      transition: all 0.3s;
+    }
+
+    .toc-container li a:hover {
+      background: #fafafa;
+    }
+
+    .toc-container li a.current {
+      background: #fafafa;
+    }
+
+    @media (max-width: 1150px) {
+      .toc-container {
+        display: none;
+      }
+    }
+  </style>
+  </body>
+</html>

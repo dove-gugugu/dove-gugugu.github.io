@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>Go多种安装 | 咕咕咕的博客</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<!-- <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous"> -->
+<link href="https://cdn.bootcss.com/font-awesome/5.13.0/css/all.css" rel="stylesheet">
+<link rel="shortcut icon" href="https://dove-gugugu.github.io//favicon.ico?v=1716523516598">
+<link rel="stylesheet" href="https://dove-gugugu.github.io//styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<!-- <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script> -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2.7.16"></script>
+
+
+
+    <meta name="description" content="记录下在不同环境下搭建和配置Go语言的开发环境：1. 在Ubuntu上安装Go语言环境，并使用VSCode远程连接进行开发。2. 在本地直接安装Go，以及安装和管理多个Go版本。3. 使用Docker来创建Go开发环境，以保持系统环境的纯净..." />
+    <meta name="keywords" content="Go" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://dove-gugugu.github.io/">
+        <img src="https://dove-gugugu.github.io//images/avatar.png?v=1716523516598" class="site-logo">
+        <h1 class="site-title">咕咕咕的博客</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      <!-- 新增搜索框 -->
+      <form id="gridea-search-form" style="position: relative" data-update="1716523516598" action="/search/">
+        <input class="search-input" autocomplete="off" spellcheck="false" name="q" placeholder="搜索文章" />
+        <!-- <i class="fas fa-search gt-c-content-color-first" style="position: absolute; top: 9px; left: 10px;"></i> -->
+      </form>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <!-- 新增天气模块 -->
+    <div class="weather-info">
+      <div class="weather-temperature"></div>
+      <div class="weather-details">
+        <div class="weather-city"></div>
+        <div class="weather-condition"></div>
+      </div>
+    </div>
+    <div class="site-description">
+      温故而知新
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://dove-gugugu.github.io//atom.xml" target="_blank">RSS</a>
+    </div>
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/dove-gugugu" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+          <a class="social-link" href="https://qm.qq.com/q/Ct9sVdkvo" target="_blank">
+            <i class="fab fa-qq"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">Go多种安装</h2>
+            <div class="post-date">
+              2024-05-09
+              <span style="margin-left: 10px;">字数：1141</span>
+              <span style="margin-left: 10px;">阅读时间：5分钟左右</span>
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://dove-gugugu.github.io/tag/rn1dBqYw4/" class="tag">
+                    Go
+                  </a>
+                
+              </div>
+            
+            
+              <div class="feature-container" style="background-image: url('https://dove-gugugu.github.io//post-images/go-duo-chong-an-zhuang.jpg')">
+              </div>
+            
+            <div class="toc-container">
+              <ul class="markdownIt-TOC">
+<li><a href="#ubuntu%E5%AE%89%E8%A3%85go%E7%8E%AF%E5%A2%83%E5%90%8E%E4%BD%BF%E7%94%A8vscode%E8%BF%9C%E7%A8%8B%E8%BF%9E%E6%8E%A5%E5%BC%80%E5%8F%91">Ubuntu安装Go环境后使用VSCode远程连接开发</a></li>
+<li><a href="#%E6%9C%AC%E5%9C%B0%E5%AE%89%E8%A3%85go%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83">本地安装Go开发环境</a>
+<ul>
+<li><a href="#%E5%AE%89%E8%A3%85%E5%A4%9A%E4%B8%AAgo%E7%89%88%E6%9C%AC">安装多个Go版本</a></li>
+</ul>
+</li>
+<li><a href="#docker%E9%83%A8%E7%BD%B2go%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83">Docker部署Go开发环境</a><br>
+*
+<ul>
+<li><a href="#%E8%87%AA%E5%AE%9A%E4%B9%89-go-shell-%E8%84%9A%E6%9C%AC%E6%9D%A5%E6%89%A7%E8%A1%8C-go">自定义 Go Shell 脚本来执行 go</a></li>
+<li><a href="#%E8%87%AA%E5%AE%9A%E4%B9%89%E7%BC%96%E8%BE%91%E8%84%9A%E6%9C%AC">自定义编辑脚本</a></li>
+</ul>
+</li>
+</ul>
+
+            </div>
+            <div class="post-content" v-pre>
+              <p>记录下在不同环境下搭建和配置Go语言的开发环境：1. 在Ubuntu上安装Go语言环境，并使用VSCode远程连接进行开发。2. 在本地直接安装Go，以及安装和管理多个Go版本。3. 使用Docker来创建Go开发环境，以保持系统环境的纯净和开发环境的一致性。</p>
+<!-- more -->
+<h1 id="ubuntu安装go环境后使用vscode远程连接开发">Ubuntu安装Go环境后使用VSCode远程连接开发</h1>
+<ol>
+<li>服务器安装Go
+<ol>
+<li><a href="https://golang.google.cn/dl/">官网</a>下载安装包，解压到 /usr/local，检查该路径下是否出现go</li>
+<li>在 /etc/profile 新增配置 <code>export PATH=$PATH:/usr/local/src/go/bin</code></li>
+<li>或在 /home/{user}/.profile 中配置</li>
+<li>使profile配置立即生效 <code>source /home/{user}/.profile</code></li>
+<li>如果在 /etc/profile 修改的需要重启</li>
+<li>大概率需要配置镜像代理，不然下载依赖太慢 <code>go env -w GOPROXY=https://goproxy.cn,direct</code></li>
+</ol>
+</li>
+<li>VSCode远程连接服务器
+<ol>
+<li>安装 Remote-SSH 插件，用以远程连接服务器</li>
+</ol>
+</li>
+<li>使用 Remote-SSH 连接远程服务器后
+<ol>
+<li>给服务器安装 Go 插件</li>
+<li>打开命令行输入 Go: Install/Update 什么的，之后全选安装</li>
+</ol>
+</li>
+</ol>
+<h1 id="本地安装go开发环境">本地安装Go开发环境</h1>
+<p>打开<a href="https://golang.google.cn/doc/install">官网</a>下载后直接安装即可，现在的版本不需要配置PATH确实方便了些。<br>
+<img src="https://dove-gugugu.github.io//post-images/1715235976725.png" alt="go官网安装步骤" loading="lazy"><br>
+<img src="https://dove-gugugu.github.io//post-images/1715235989188.png" alt="go安装界面" loading="lazy"><br>
+安装只需要选择下安装目录，安装好后打开命令行看下已经安装成功了<br>
+<img src="https://dove-gugugu.github.io//post-images/1715236019250.png" alt="" loading="lazy"></p>
+<h2 id="安装多个go版本">安装多个Go版本</h2>
+<p>我们可以在同一台计算机上安装多个Go版本。安装的版本可以前往官网的<a href="https://golang.google.cn/dl/">版本列表</a>来查看。<br>
+这里翻译下官网的操作：</p>
+<blockquote>
+<p>注意：要使用这里描述的方法安装，需要安装<a href="https://git-scm.com/">git</a>。</p>
+</blockquote>
+<p>要安装其他Go版本，请运行<a href="https://golang.google.cn/cmd/go/#hdr-Compile_and_install_packages_and_dependencies"><code>go install</code>命令</a>，指定要安装的版本的下载位置。下面的示例使用版本1.10.7进行说明：</p>
+<pre><code class="language-bash">$ go install golang.org/dl/go1.10.7@latest
+$ go1.10.7 download
+</code></pre>
+<p>要使用新下载的版本运行<code>go</code>命令，请将版本号附加到<code>go</code>命令，如下所示：</p>
+<pre><code class="language-bash">$ go1.10.7 version
+go version go1.10.7 linux/amd64
+</code></pre>
+<p>当您安装了多个版本时，您可以发现每个版本的安装位置，查看版本的<code>GOROOT</code>值。例如，运行如下命令：</p>
+<pre><code class="language-bash">$ go1.10.7 env GOROOT
+</code></pre>
+<p>要卸载下载的版本，只需删除由其<code>GOROOT</code>环境变量和goX.Y.Z二进制文件指定的目录。</p>
+<h1 id="docker部署go开发环境">Docker部署Go开发环境</h1>
+<blockquote>
+<p>详见：<a href="https://zhuanlan.zhihu.com/p/412197352">使用 Docker 一步一步搭建 Go 语言开发环境</a></p>
+</blockquote>
+<p>发现有大佬 docker 来实现Go开发环境的搭建，十分厉害，这里简单记录下。</p>
+<h3 id="自定义-go-shell-脚本来执行-go">自定义 Go Shell 脚本来执行 go</h3>
+<pre><code class="language-bash">#!/bin/bash
+​
+docker run --rm -it \
+    -u $UID:$UID \
+    -e XDG_CACHE_HOME=/tmp/.cache \
+    -e GOPROXY=https://goproxy.cn \
+    -v $PWD:/srv/app \
+    -v $HOME/go:/go \
+    -w /srv/app \
+    -p 8080:8080 \
+    golang:alpine go $@
+</code></pre>
+<ul>
+<li><code>-it</code> 参数使运行的容器可以接受交互操作，所以按 <code>Ctrl + c</code> 就可以终止程序了</li>
+<li><code>-u</code> 参数指定了当前用户 ID。使初始化 go.mod 的权限为当前用户而非 root 权限</li>
+<li><code>-e</code> Docker 用来设置容器运行时的环境变量
+<ul>
+<li><code>GOPROXY</code>给Go提供镜像加速功能</li>
+<li><code>XDG_CACHE_HOME</code>防止缓存用途的目录因为权限问题创建失败</li>
+</ul>
+</li>
+<li><code>-v</code> Docker 挂载目录的参数
+<ul>
+<li><code>$PWD</code> 代表当前执行命令的位置，<code>/srv/app</code> 是镜像容器中的目录。</li>
+<li>映射目录 <code>-v $HOME/go:/go</code>，这是因为 go mod 会把软件包安装到 $GOPATH 定义的位置，这个位置如果不映射到容器外的目录，每次执行结束都会跟随容器一起销毁，所以每次都会要重新项目依赖的安装软件包。</li>
+</ul>
+</li>
+<li><code>-w</code> Docker 设置容器运行时的工作主目录。这主要是为了配合上面的 <code>-v</code> 参数来执行当前目录下的 go 代码</li>
+</ul>
+<h3 id="自定义编辑脚本">自定义编辑脚本</h3>
+<p>上面自定义的 go Shell 脚本虽然也能执行 build 命令，但我发现编译后的执行文件无法在容器外执行。因为上面的自定义脚本使用的是 alpine 标签的 go 语言 Docker 镜像。要解决这个问题有两个方案：</p>
+<ol>
+<li>采用和但前开发系统一致的 Docker 镜像。</li>
+<li>使用 Go 语言的交叉编译功能。</li>
+</ol>
+<p>使用交叉编译功能可参考以下脚本：</p>
+<pre><code class="language-bash">#!/bin/bash
+​
+docker run --rm -it \
+    -u $UID:$UID \
+    -e XDG_CACHE_HOME=/tmp/.cache \
+    -e GOPROXY=https://goproxy.cn \
+    -e CGO_ENABLED=0 \
+    -e GOOS=linux \
+    -e GOARCH=amd64 \
+    -v $PWD:/srv/app \
+    -v ~/Services/go:/go \
+    -w /srv/app \
+    golang:alpine go build $@
+</code></pre>
+<p>该脚本添加了 <code>CGO_ENABLED</code>，<code>GOOS</code>，<code>GOARCH</code> 这三个交叉编译环境变量。并添加了 <code>build</code> 参数</p>
+
+            </div>
+            <!-- 
+              <div class="tag-container">
+                
+                  <a href="https://dove-gugugu.github.io/tag/rn1dBqYw4/" class="tag">
+                    Go
+                  </a>
+                
+              </div>
+             -->
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://dove-gugugu.github.io/post/mysql-ji-chu-diao-you/">
+                  <h3 class="post-title">
+                    MySQL基础调优
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+<script>
+  // 获取一言api数据并更新description div标签的文本内容和meta标签的content内容
+  fetch('https://v1.hitokoto.cn/?c=d&c=i&encode=text')
+    .then(response => response.text())
+    .then(data => {
+      // 更新description div标签的文本内容
+      document.getElementsByClassName('site-description')[0].innerText = data;
+      // 更新meta标签的content内容
+      document.querySelector('meta[name=description]').setAttribute('content', data);
+    })
+    .catch(error => {
+      console.error('访问一言api发生错误:', error);
+    });
+  function updateWeatherInfo(city, weather, temperature) {
+    // 使用获取到的数据更新DOM
+    document.querySelector('.weather-city').textContent = `${city}`;
+    document.querySelector('.weather-condition').textContent = `${weather}`;
+    document.querySelector('.weather-temperature').textContent = `${temperature}°C`;
+  }
+  // 使用fetch函数发送GET请求到API
+  fetch('https://05d001686f8e43249d001efa0d32a2a3.apig.cn-south-1.huaweicloudapis.com/weather')
+    .then(response => {
+      // 检查响应状态是否成功
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      // 将响应体转换为JSON格式
+      return response.json();
+    })
+    .then(data => {
+      // 提取所需的数据并打印
+      const { city, weather, temperature } = data;
+      updateWeatherInfo(city, weather, temperature);
+    })
+    .catch(error => {
+      // 打印错误信息
+      console.error('There has been a problem with your fetch operation:', error);
+    });
+</script>
+
+
+  <style>
+    .toc-container {
+      position: fixed;
+      top: 50px;
+      /* Adjust depending on your layout */
+      right: 20px;
+      /* Adjust depending on your layout */
+      width: 200px;
+      padding: 16px 8px;
+      background-color: #fff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .toc-container .markdownIt-TOC {
+      position: sticky;
+      top: 0;
+      font-size: 12px;
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .toc-container .markdownIt-TOC:before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 8px;
+      bottom: 0;
+      width: 1px;
+      background-color: #ebedef;
+      opacity: 0.5;
+    }
+
+    .toc-container ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .toc-container li {
+      padding-left: 16px;
+    }
+
+    .toc-container li a {
+      color: #444444;
+      padding: 8px;
+      display: block;
+      transition: all 0.3s;
+    }
+
+    .toc-container li a:hover {
+      background: #fafafa;
+    }
+
+    .toc-container li a.current {
+      background: #fafafa;
+    }
+
+    @media (max-width: 1150px) {
+      .toc-container {
+        display: none;
+      }
+    }
+  </style>
+  </body>
+</html>

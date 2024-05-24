@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>Gridea自定义主题组件 | 咕咕咕的博客</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<!-- <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous"> -->
+<link href="https://cdn.bootcss.com/font-awesome/5.13.0/css/all.css" rel="stylesheet">
+<link rel="shortcut icon" href="https://dove-gugugu.github.io//favicon.ico?v=1716523516598">
+<link rel="stylesheet" href="https://dove-gugugu.github.io//styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<!-- <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script> -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2.7.16"></script>
+
+
+
+    <meta name="description" content="本博客是使用 Gridea + GitHub Pages 搭建起来的，但是 Gridea 自带的主题比较少，所以萌生了自己小改一下当前主题的想法，给当前主题添加些小组件并使用云函数防止私有Key泄露。
+
+文件结构
+首先是简单了解下主题的文件..." />
+    <meta name="keywords" content="云函数,前端" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://dove-gugugu.github.io/">
+        <img src="https://dove-gugugu.github.io//images/avatar.png?v=1716523516598" class="site-logo">
+        <h1 class="site-title">咕咕咕的博客</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      <!-- 新增搜索框 -->
+      <form id="gridea-search-form" style="position: relative" data-update="1716523516598" action="/search/">
+        <input class="search-input" autocomplete="off" spellcheck="false" name="q" placeholder="搜索文章" />
+        <!-- <i class="fas fa-search gt-c-content-color-first" style="position: absolute; top: 9px; left: 10px;"></i> -->
+      </form>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <!-- 新增天气模块 -->
+    <div class="weather-info">
+      <div class="weather-temperature"></div>
+      <div class="weather-details">
+        <div class="weather-city"></div>
+        <div class="weather-condition"></div>
+      </div>
+    </div>
+    <div class="site-description">
+      温故而知新
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://dove-gugugu.github.io//atom.xml" target="_blank">RSS</a>
+    </div>
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/dove-gugugu" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+          <a class="social-link" href="https://qm.qq.com/q/Ct9sVdkvo" target="_blank">
+            <i class="fab fa-qq"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">Gridea自定义主题组件</h2>
+            <div class="post-date">
+              2024-05-04
+              <span style="margin-left: 10px;">字数：2451</span>
+              <span style="margin-left: 10px;">阅读时间：11分钟左右</span>
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://dove-gugugu.github.io/tag/z7xxl9RRu/" class="tag">
+                    云函数
+                  </a>
+                
+                  <a href="https://dove-gugugu.github.io/tag/swQB_ebiQ/" class="tag">
+                    前端
+                  </a>
+                
+              </div>
+            
+            
+              <div class="feature-container" style="background-image: url('https://dove-gugugu.github.io//post-images/gridea-configuration.jpg')">
+              </div>
+            
+            <div class="toc-container">
+              <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E6%96%87%E4%BB%B6%E7%BB%93%E6%9E%84">文件结构</a></li>
+<li><a href="#%E7%BB%99%E5%BD%93%E5%89%8D%E4%B8%BB%E9%A2%98%E6%B7%BB%E5%8A%A0%E4%B8%80%E8%A8%80">给当前主题添加一言</a>
+<ul>
+<li><a href="#%E4%B8%80%E8%A8%80api%E6%8E%A5%E5%8F%A3">一言api接口</a></li>
+<li><a href="#%E4%BF%AE%E6%94%B9%E6%A8%A1%E6%9D%BF">修改模板</a></li>
+</ul>
+</li>
+<li><a href="#%E6%B7%BB%E5%8A%A0%E5%AE%9E%E6%97%B6%E5%A4%A9%E6%B0%94%E7%BB%84%E4%BB%B6">添加实时天气组件</a>
+<ul>
+<li><a href="#%E8%B0%83%E7%94%A8%E9%AB%98%E5%BE%B7api">调用高德API</a></li>
+<li><a href="#%E6%94%B9%E4%B8%BA%E8%B0%83%E7%94%A8%E4%BA%91%E5%87%BD%E6%95%B0">改为调用云函数</a></li>
+<li><a href="#%E6%B7%BB%E5%8A%A0%E7%BB%84%E4%BB%B6">添加组件</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            </div>
+            <div class="post-content" v-pre>
+              <p>本博客是使用 Gridea + GitHub Pages 搭建起来的，但是 Gridea 自带的主题比较少，所以萌生了自己小改一下当前主题的想法，给当前主题添加些小组件并使用云函数防止私有Key泄露。</p>
+<!-- more -->
+<h2 id="文件结构">文件结构</h2>
+<p>首先是简单了解下主题的文件结构，Gridea 的主题都在 <code>/themes</code> 文件夹中，该目录下每个文件夹都是一个主题，以自带的 fly 主题为例，文件结构为：</p>
+<pre><code class="language-bash">fly - 主题文件夹名称 (建议用小写，中划线分隔)
+├── assets - 资源文件夹（必须，不可更名）
+│   ├── media - 主题静态资源存放目录（可选，不可更名）
+│   │   └── fonts - 字体图标文件夹（示例）
+│   │   │   ├── icomoon.ttf
+│   │   │   └── icomoon.woff
+│   │   └── images - 主题用图片文件（示例）
+│   └── styles - 样式文件夹（必须，不可更名）
+│       ├── _blocks - 样式模块文件夹（可选，可自定义命名）
+│       │   ├── footer.less
+│       │   ├── header.less
+│       │   └── tag.less
+│       ├── _core - 样式模块文件夹（可选，可自定义命名）
+│       │   ├── base.less
+│       │   ├── colors.less
+│       └── main.less - 主样式文件 (必须，不可更名)
+└── templates - 页面模版文件夹（必须，不可更名）
+│   ├── _blocks - 页面模版文件夹（可选，可自定义命名）
+│   │   ├── footer.ejs
+│   │   ├── head.ejs
+│   │   ├── header.ejs
+│   ├── index.ejs - 主页，列表页 (必须，不可更名)
+│   ├── post.ejs - 文章页 (必须，不可更名)
+│   ├── archives.ejs - 归档页 (必须，不可更名)
+│   ├── tags.ejs - 标签列表页 (必须，不可更名)
+│   ├── tag.ejs - 标签详情页 (必须，不可更名)
+│   └── friends.ejs - 自定义模版 (可选，任意命名)
+└── config.json - 主题配置文件 (可选，推荐)
+└── style-override.js - 主题样式自定义文件 (可选)
+</code></pre>
+<p>其中值得注意的是，页面主题都是由 ejs 模板引擎生成的，样式文件也是 less 格式，统一由 Gridea 根据模板文件生成静态文件同步到 Github 上，Github Pages 展示页面。</p>
+<h2 id="给当前主题添加一言">给当前主题添加一言</h2>
+<h3 id="一言api接口">一言api接口</h3>
+<p><a href="https://hitokoto.cn/">一言主站</a><br>
+一言是个很优秀的短句api，每次调用都会随机返回一个句子，可以给博客增色不少。</p>
+<p>根据一言的文档我们可以根据需求得到下列api接口：<br>
+<code>https://v1.hitokoto.cn/?c=d&amp;c=i&amp;encode=text</code><br>
+其中，参数<code>c</code>为句子类型，d和i表示返回的类型为文学和诗词；<code>encode</code>为返回编码，text表示返回纯洁文本</p>
+<h3 id="修改模板">修改模板</h3>
+<p>以simple主题为例，原模板是静态的固定文字，我们需要调用一言接口来实现动态的展示文字，故而需要写个简单的js来修改<code>div.site-description</code>的内容。</p>
+<figure data-type="image" tabindex="1"><img src="https://dove-gugugu.github.io//post-images/1716450250302.png" alt="" loading="lazy"></figure>
+<p>我们可以直接在<code>scripts.ejs</code>中新增一段js来调用一言接口</p>
+<figure data-type="image" tabindex="2"><img src="https://dove-gugugu.github.io//post-images/1716450272368.png" alt="" loading="lazy"></figure>
+<pre><code class="language-html">&lt;script&gt;
+    // 获取一言api数据并更新description div标签的文本内容和meta标签的content内容
+    fetch('https://v1.hitokoto.cn/?c=d&amp;c=i&amp;encode=text')
+      .then(response =&gt; response.text())
+      .then(data =&gt; {
+        // 更新description div标签的文本内容
+        document.getElementsByClassName('site-description')[0].innerText = data;
+        // 更新meta标签的content内容
+        document.querySelector('meta[name=description]').setAttribute('content', data);
+      })
+      .catch(error =&gt; {
+        console.error('访问一言api发生错误:', error);
+      });
+&lt;/script&gt;
+</code></pre>
+<p>这样就搞定了，记得同步到GitHub上哦。</p>
+<h2 id="添加实时天气组件">添加实时天气组件</h2>
+<p>现在来点更有意思的，根据当前访问的ip地址来显示该ip地址所在地区的实时天气。大体思路为调用高德Web服务API来实现ip定位和天气查询，然后使用华为云函数来访问上述接口以此保护私有Key不在前端泄露，最后博客直接调用封装好的云函数来实现。</p>
+<h3 id="调用高德api">调用高德API</h3>
+<p>首先是采用高德地图提供的接口来实现ip定位和天气查询。调用高德家的接口需要注册个开发者账号来获取到自己的Key，获取到Key之后可以开始调用接口来实现具体代码逻辑了。</p>
+<figure data-type="image" tabindex="3"><img src="https://dove-gugugu.github.io//post-images/1716450348605.png" alt="" loading="lazy"></figure>
+<table>
+<thead>
+<tr>
+<th>服务类型</th>
+<th>URL</th>
+<th>请求方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IP定位API</td>
+<td>https://restapi.amap.com/v3/ip?parameters</td>
+<td>GET</td>
+</tr>
+<tr>
+<td>天气查询API</td>
+<td>https://restapi.amap.com/v3/weather/weatherInfo?parameters</td>
+<td>GET</td>
+</tr>
+</tbody>
+</table>
+<p>IP定位的接口可以不写ip参数，根据当前访问的ip来反显地址。而且返回的adcode可以直接给天气查询接口使用，比较方便。</p>
+<p>但是实际测试时发现有个问题，如下图所示，广州市的adcode返回的是<code>440000</code>，是广东省的编码，深圳返回正常的编码<code>440300</code>，这就影响了之后调用天气接口返回的信息了（天气可能有点差别，返回的地市区信息也会只显示为省份）</p>
+<p><img src="https://dove-gugugu.github.io//post-images/1716450371017.png" alt="" loading="lazy"><br>
+<img src="https://dove-gugugu.github.io//post-images/1716450378937.png" alt="" loading="lazy"></p>
+<p>所以在实际调用代码中，我又调用了下行政区域查询接口：</p>
+<table>
+<thead>
+<tr>
+<th>URL</th>
+<th>请求方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>https://restapi.amap.com/v3/config/district?parameters</td>
+<td>GET</td>
+</tr>
+</tbody>
+</table>
+<p>简易代码如下：</p>
+<pre><code class="language-js">try {
+    let ipUrl = 'https://restapi.amap.com/v3/ip?ip=' + clientIp + '&amp;key=&lt;我的Key&gt;';
+    const ipResponse = await fetch(ipUrl);
+    if (!ipResponse.ok) {
+        throw new Error('Failed to fetch IP location');
+    }
+    const ipData = await ipResponse.json();
+
+    if (ipData.status === '1') {
+        let adcode = ipData.adcode;
+        let city = ipData.city;
+
+        const addUrl = `https://restapi.amap.com/v3/config/district?keywords=${city}&amp;subdistrict=0&amp;key=&lt;我的Key&gt;`;
+
+        const addResponse = await fetch(addUrl);
+        if (!addResponse.ok) {
+            throw new Error(`Network response was not ok: ${addResponse.status}`);
+        }
+
+        const addData = await addResponse.json();
+
+        // 检查districts是否为空
+        if (addData.districts.length &gt; 0) {
+            // 获取第一个district的adcode
+            adcode = addData.districts[0].adcode;
+        }
+
+        const weatherResponse = await fetch(`https://restapi.amap.com/v3/weather/weatherInfo?city=${adcode}&amp;key=&lt;我的Key&gt;`);
+        if (!weatherResponse.ok) {
+            throw new Error('Failed to fetch weather information.');
+        }
+        const weatherData = await weatherResponse.json();
+
+        if (weatherData.status === '1' &amp;&amp; weatherData.lives.length &gt; 0) {
+            const liveWeather = weatherData.lives[0];
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(liveWeather));
+        } else {
+            res.writeHead(500, { 'Content-Type': 'text/plain' });
+            res.end('Failed to fetch weather data.');
+        }
+    } else {
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('Failed to fetch IP location');
+    }
+} catch (error) {
+    res.writeHead(500, { 'Content-Type': 'text/plain' });
+    res.end('Failed to fetch weather data.' + error);
+}
+</code></pre>
+<h3 id="改为调用云函数">改为调用云函数</h3>
+<p>但上面的代码有个问题，那就是前端可以很方便的就看到我的Key，因为本博客是静态网页的，没有后端，所有数据在前端都可以看到，尤其是这种会访问其他地址的接口，不是很安全。所以我们需要一个类似后端的来封装以下我们调用的接口，因此我把目光放到了云函数上。找了下比较有名的云函数，发现华为云提供了每月100万次的免费请求额度，感觉还不错，所以本次就采用华为云函数来实现代码封装。</p>
+<p>华为控制台中叫做函数工作流，点击创建函数后可以选择模板，我就使用了最简单的空白模板。</p>
+<figure data-type="image" tabindex="4"><img src="https://dove-gugugu.github.io//post-images/1716450417266.png" alt="" loading="lazy"></figure>
+<p>之后将代码粘贴一下就行了——我以为这样就可以了。但是我忽略了一点，此时访问高德接口的已经不是我们访问博客的ip了，而是云函数，所以就ip地址这里需要修改一下，获取到实际的客户端ip地址：</p>
+<pre><code class="language-js">const clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+</code></pre>
+<p>除此之外还需要修改下<code>bootstrap</code>中调用的node版本，改为<strong>18.15</strong>，因为这个版本已经内置了fetch，我们才能正常使用。</p>
+<pre><code>/opt/function/runtime/nodejs18.15/rtsp/nodejs/bin/node $RUNTIME_CODE_ROOT/index.js
+</code></pre>
+<p>这里是最终的<code>index.js</code>的完整代码:</p>
+<pre><code class="language-js">const http = require('http'); // Import Node.js core module
+
+var server = http.createServer(async function (req, res) {   // Create web server
+    if (req.url.startsWith(&quot;/weather&quot;)) {
+        try {
+            const clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+            let ipUrl = 'https://restapi.amap.com/v3/ip?ip=' + clientIp + '&amp;key=&lt;我的Key&gt;';
+            const ipResponse = await fetch(ipUrl);
+            if (!ipResponse.ok) {
+                throw new Error('Failed to fetch IP location');
+            }
+            const ipData = await ipResponse.json();
+
+            if (ipData.status === '1') {
+                let adcode = ipData.adcode;
+                let city = ipData.city;
+
+                const addUrl = `https://restapi.amap.com/v3/config/district?keywords=${city}&amp;subdistrict=0&amp;key=&lt;我的Key&gt;`;
+
+                const addResponse = await fetch(addUrl);
+                if (!addResponse.ok) {
+                    throw new Error(`Network response was not ok: ${addResponse.status}`);
+                }
+
+                const addData = await addResponse.json();
+
+                // 检查districts是否为空
+                if (addData.districts.length &gt; 0) {
+                    // 获取第一个district的adcode
+                    adcode = addData.districts[0].adcode;
+                }
+
+                const weatherResponse = await fetch(`https://restapi.amap.com/v3/weather/weatherInfo?city=${adcode}&amp;key=&lt;我的Key&gt;`);
+                if (!weatherResponse.ok) {
+                    throw new Error('Failed to fetch weather information.');
+                }
+                const weatherData = await weatherResponse.json();
+
+                if (weatherData.status === '1' &amp;&amp; weatherData.lives.length &gt; 0) {
+                    const liveWeather = weatherData.lives[0];
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(liveWeather));
+                } else {
+                    res.writeHead(500, { 'Content-Type': 'text/plain' });
+                    res.end('Failed to fetch weather data.');
+                }
+            } else {
+                res.writeHead(500, { 'Content-Type': 'text/plain' });
+                res.end('Failed to fetch IP location');
+            }
+        } catch (error) {
+            res.writeHead(500, { 'Content-Type': 'text/plain' });
+            res.end('Failed to fetch weather data.' + error);
+        }
+    } else {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Invalid Request!');
+    }
+});
+
+server.listen(8000, '127.0.0.1'); // Listen for incoming requests on port 8000
+</code></pre>
+<p>改好后点击部署，然后记得添加触发器作为提供给外部的网关，最后封装的接口地址即为触发器的调用URL</p>
+<figure data-type="image" tabindex="5"><img src="https://dove-gugugu.github.io//post-images/1716450443121.png" alt="" loading="lazy"></figure>
+<h3 id="添加组件">添加组件</h3>
+<p>最后一步就是修改博客主题的模板了</p>
+<p>1、在<code>sidebar.ejs</code>中新增一个显示天气的div</p>
+<pre><code class="language-html">&lt;!-- 新增天气模块 --&gt;
+&lt;div class=&quot;weather-info&quot;&gt;
+    &lt;div class=&quot;weather-temperature&quot;&gt;&lt;/div&gt;
+    &lt;div class=&quot;weather-details&quot;&gt;
+        &lt;div class=&quot;weather-city&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;weather-condition&quot;&gt;&lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+</code></pre>
+<p>2、在<code>main.less</code>中添加下样式，让其更好看一点</p>
+<pre><code class="language-less">.weather-info {
+  display: flex;
+  align-items: center;
+
+  .weather-temperature {
+    flex: 1;
+    font-size: 24px;
+  }
+
+  .weather-details {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    .weather-city {
+      text-align: left;
+    }
+
+    .weather-condition {
+      text-align: left;
+    }
+  }
+}
+</code></pre>
+<p>3、最后在<code>scripts.ejs</code>中添加更新天气数据和调用云函数接口的脚本</p>
+<pre><code class="language-html">&lt;script&gt;
+  // 更新天气数据
+  function updateWeatherInfo(city, weather, temperature) {
+    // 使用获取到的数据更新DOM
+    document.querySelector('.weather-city').textContent = `${city}`;
+    document.querySelector('.weather-condition').textContent = `${weather}`;
+    document.querySelector('.weather-temperature').textContent = `${temperature}°C`;
+  }
+  // 调用云函数接口
+  fetch('https://05d001686f8e43249d001efa0d32a2a3.apig.cn-south-1.huaweicloudapis.com/weather')
+    .then(response =&gt; {
+      // 检查响应状态是否成功
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      // 将响应体转换为JSON格式
+      return response.json();
+    })
+    .then(data =&gt; {
+      // 提取所需的数据并打印
+      const { city, weather, temperature } = data;
+      updateWeatherInfo(city, weather, temperature);
+    })
+    .catch(error =&gt; {
+      // 打印错误信息
+      console.error('There has been a problem with your fetch operation:', error);
+    });
+&lt;/script&gt;
+</code></pre>
+<p>如此就大功告成啦！</p>
+<figure data-type="image" tabindex="6"><img src="https://dove-gugugu.github.io//post-images/1716450471500.png" alt="" loading="lazy"></figure>
+
+            </div>
+            <!-- 
+              <div class="tag-container">
+                
+                  <a href="https://dove-gugugu.github.io/tag/z7xxl9RRu/" class="tag">
+                    云函数
+                  </a>
+                
+                  <a href="https://dove-gugugu.github.io/tag/swQB_ebiQ/" class="tag">
+                    前端
+                  </a>
+                
+              </div>
+             -->
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://dove-gugugu.github.io/post/xtrabackup-bei-fen-hui-fu/">
+                  <h3 class="post-title">
+                    Xtrabackup备份恢复
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  <script>
+    hljs.initHighlightingOnLoad()
+  </script>
+
+
+
+
+<script>
+  // 获取一言api数据并更新description div标签的文本内容和meta标签的content内容
+  fetch('https://v1.hitokoto.cn/?c=d&c=i&encode=text')
+    .then(response => response.text())
+    .then(data => {
+      // 更新description div标签的文本内容
+      document.getElementsByClassName('site-description')[0].innerText = data;
+      // 更新meta标签的content内容
+      document.querySelector('meta[name=description]').setAttribute('content', data);
+    })
+    .catch(error => {
+      console.error('访问一言api发生错误:', error);
+    });
+  function updateWeatherInfo(city, weather, temperature) {
+    // 使用获取到的数据更新DOM
+    document.querySelector('.weather-city').textContent = `${city}`;
+    document.querySelector('.weather-condition').textContent = `${weather}`;
+    document.querySelector('.weather-temperature').textContent = `${temperature}°C`;
+  }
+  // 使用fetch函数发送GET请求到API
+  fetch('https://05d001686f8e43249d001efa0d32a2a3.apig.cn-south-1.huaweicloudapis.com/weather')
+    .then(response => {
+      // 检查响应状态是否成功
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      // 将响应体转换为JSON格式
+      return response.json();
+    })
+    .then(data => {
+      // 提取所需的数据并打印
+      const { city, weather, temperature } = data;
+      updateWeatherInfo(city, weather, temperature);
+    })
+    .catch(error => {
+      // 打印错误信息
+      console.error('There has been a problem with your fetch operation:', error);
+    });
+</script>
+
+
+  <style>
+    .toc-container {
+      position: fixed;
+      top: 50px;
+      /* Adjust depending on your layout */
+      right: 20px;
+      /* Adjust depending on your layout */
+      width: 200px;
+      padding: 16px 8px;
+      background-color: #fff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .toc-container .markdownIt-TOC {
+      position: sticky;
+      top: 0;
+      font-size: 12px;
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .toc-container .markdownIt-TOC:before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 8px;
+      bottom: 0;
+      width: 1px;
+      background-color: #ebedef;
+      opacity: 0.5;
+    }
+
+    .toc-container ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .toc-container li {
+      padding-left: 16px;
+    }
+
+    .toc-container li a {
+      color: #444444;
+      padding: 8px;
+      display: block;
+      transition: all 0.3s;
+    }
+
+    .toc-container li a:hover {
+      background: #fafafa;
+    }
+
+    .toc-container li a.current {
+      background: #fafafa;
+    }
+
+    @media (max-width: 1150px) {
+      .toc-container {
+        display: none;
+      }
+    }
+  </style>
+  </body>
+</html>
